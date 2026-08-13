@@ -22,7 +22,7 @@ export function Footer() {
             loading="lazy"
             width={220}
             height={220}
-            className="w-32 animate-float-slow mix-blend-screen sm:w-44"
+            className="w-32 animate-float-slow mix-blend-lighten contrast-125 sm:w-44"
           />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
             {LINKS.map((l) => (

@@ -60,7 +60,7 @@ function Index() {
             alt="ZZERKOFF liquid chrome ZZ monogram"
             width={720}
             height={720}
-            className="mx-auto w-[68vw] max-w-[34rem] animate-float-slow mix-blend-screen"
+            className="mx-auto w-[68vw] max-w-[34rem] animate-float-slow mix-blend-lighten contrast-125"
           />
         </Reveal>
 
