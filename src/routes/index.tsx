@@ -66,7 +66,7 @@ function Index() {
 
         <Reveal delay={200} className="mt-2">
           <h1 className="chrome-text font-display text-3xl tracking-[0.3em] sm:text-5xl">
-            ZZERKOFF
+            Zzerkoff
           </h1>
           <p className="mt-6 font-editorial text-lg italic text-chrome/80 sm:text-2xl">
             Objects for the Afterdark.
