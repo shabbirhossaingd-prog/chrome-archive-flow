@@ -1,0 +1,58 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
+const PREFIX = "storage:";
+export const toStorageRef = (path: string) => `${PREFIX}${path}`;
+
+/**
+ * Renders a product image. Accepts either a normal URL/path or a
+ * "storage:<path>" reference for images uploaded through the admin dashboard.
+ */
+export function SmartImage({
+  src,
+  alt,
+  className,
+  width,
+  height,
+  eager,
+}: {
+  src: string | null | undefined;
+  alt: string;
+  className?: string;
+  width?: number;
+  height?: number;
+  eager?: boolean;
+}) {
+  const isStorage = !!src && src.startsWith(PREFIX);
+  const path = isStorage ? src!.slice(PREFIX.length) : null;
+
+  const { data: signed } = useQuery({
+    queryKey: ["storage-image", path],
+    enabled: !!path,
+    staleTime: 1000 * 60 * 30,
+    queryFn: async () => {
+      const { data } = await supabase.storage
+        .from("product-images")
+        .createSignedUrl(path!, 60 * 60);
+      return data?.signedUrl ?? "";
+    },
+  });
+
+  const url = isStorage ? signed : src;
+
+  if (!url) {
+    return <div className={cn("bg-white/[0.03]", className)} aria-hidden />;
+  }
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={eager ? "eager" : "lazy"}
+      className={className}
+    />
+  );
+}
