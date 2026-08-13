@@ -7,7 +7,10 @@ import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { Toaster } from "@/components/ui/sonner";
-import { products, categories, upcomingCategories, formatPrice } from "@/lib/products";
+import { useCategories, useProducts, formatPrice } from "@/lib/products";
+import { ProductGrid } from "@/components/site/ProductGrid";
+import { CategoryCard } from "@/components/site/CategoryCard";
+import { SmartImage } from "@/components/site/SmartImage";
 import zzLogo from "@/assets/zz-logo.jpg.asset.json";
 import campaign1 from "@/assets/campaign-1.jpg";
 import campaign2 from "@/assets/campaign-2.jpg";
@@ -31,8 +34,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const featured = products[0]!;
-
 function SectionLabel({ children }: { children: string }) {
   return (
     <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">{children}</span>
@@ -40,6 +41,12 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 function Index() {
+  const { data: products = [], isLoading } = useProducts();
+  const { data: categories = [] } = useCategories();
+  const newDrop = products.filter((p) => p.new_collection);
+  const featuredList = products.filter((p) => p.featured);
+  const featured = featuredList[0] ?? products[0];
+
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background">
       <Header />
@@ -78,8 +85,7 @@ function Index() {
 
         <Reveal delay={420} className="mt-12">
           <Link
-            to="/"
-            hash="drop"
+            to="/collection"
             className="group inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground backdrop-blur-md transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
           >
             Enter Drop 001
@@ -109,12 +115,8 @@ function Index() {
             </p>
           </Reveal>
 
-          <div className="mt-14 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
-            {products.map((p, i) => (
-              <Reveal key={p.slug} delay={i * 120}>
-                <ProductCard product={p} />
-              </Reveal>
-            ))}
+          <div className="mt-14">
+            <ProductGrid products={newDrop} loading={isLoading} empty="New objects arriving soon." />
           </div>
         </div>
       </section>
@@ -124,10 +126,9 @@ function Index() {
         <LiquidChrome className="-right-40 top-0 h-[42rem] w-[42rem]" opacity={0.2} flip />
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <Reveal className="glass-panel relative overflow-hidden rounded-[28px]">
-            <img
-              src={featured.image}
-              alt={featured.name}
-              loading="lazy"
+            <SmartImage
+              src={featured?.primary_image}
+              alt={featured?.name ?? "Featured object"}
               width={1024}
               height={1280}
               className="aspect-4/5 w-full object-cover grayscale"
@@ -138,17 +139,17 @@ function Index() {
           <Reveal delay={150}>
             <SectionLabel>DROP 001 / 01</SectionLabel>
             <h2 className="mt-5 font-display text-2xl tracking-[0.18em] text-foreground sm:text-4xl">
-              {featured.name}
+              {featured?.name ?? "—"}
             </h2>
             <p className="mt-5 text-sm tracking-[0.25em] text-chrome">
-              {formatPrice(featured.price)}
+              {featured ? formatPrice(featured.price) : ""}
             </p>
             <p className="mt-6 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-              Polished metal. Adjustable. Unisex.
+              {featured?.short_description}
             </p>
             <Link
               to="/product/$slug"
-              params={{ slug: featured.slug }}
+              params={{ slug: featured?.slug ?? "" }}
               className="group mt-12 inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
             >
               View object
@@ -164,39 +165,20 @@ function Index() {
           <Reveal>
             <SectionLabel>SHOP BY OBJECT</SectionLabel>
           </Reveal>
-          <div className="mt-10 grid gap-4 sm:gap-6 lg:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((c, i) => (
-              <Reveal key={c.slug} delay={i * 140}>
-                <Link
-                  to="/"
-                  hash="drop"
-                  className="group glass-panel relative block overflow-hidden rounded-[26px]"
-                >
-                  <img
-                    src={c.image}
-                    alt={`${c.name} category`}
-                    loading="lazy"
-                    width={1024}
-                    height={1280}
-                    className="aspect-3/4 w-full object-cover grayscale brightness-75 transition-transform duration-[1800ms] ease-out group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                  <div className="grain-overlay" />
-                  <div className="absolute inset-x-0 bottom-0 p-6">
-                    <h3 className="font-display text-lg tracking-[0.25em] text-foreground">
-                      {c.name}
-                    </h3>
-                    <span className="mt-3 block text-[9px] uppercase tracking-[0.4em] text-chrome opacity-0 transition-opacity duration-700 group-hover:opacity-100">
-                      Explore →
-                    </span>
-                  </div>
-                </Link>
+              <Reveal key={c.slug} delay={i * 120}>
+                <CategoryCard
+                  category={c}
+                  index={i}
+                  count={products.filter((p) => p.category === c.slug).length}
+                />
               </Reveal>
             ))}
           </div>
           <Reveal className="mt-10">
             <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
-              Coming to the archive — {upcomingCategories.join(" / ")}
+              Objects are managed from the ZZERKOFF studio dashboard.
             </p>
           </Reveal>
         </div>
@@ -267,7 +249,7 @@ function Index() {
               <Reveal delay={260}>
                 <figure className="glass-panel relative overflow-hidden rounded-[26px]">
                   <img
-                    src={products[1]!.image}
+                    src={products[1]?.primary_image ?? campaign2}
                     alt="Chrome curb chain on black"
                     loading="lazy"
                     width={1024}
