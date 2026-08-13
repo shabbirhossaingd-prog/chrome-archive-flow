@@ -24,8 +24,6 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
 });
 
-export default function noop() {}
-
 function AboutPage() {
   return (
     <PageShell>
