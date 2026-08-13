@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import zzLogo from "@/assets/zz-logo.jpg.asset.json";
 import { LiquidChrome } from "./LiquidChrome";
+import { SITE, whatsappUrl } from "@/lib/site-config";
 
 const LINKS = [
-  { label: "SHOP", hash: "drop" },
-  { label: "DROP 001", hash: "drop" },
-  { label: "ARCHIVE", hash: "archive" },
-  { label: "ABOUT", hash: "about" },
+  { label: "SHOP", to: "/shop" as const },
+  { label: "NEW COLLECTION", to: "/collection" as const },
+  { label: "ARCHIVE", to: "/archive" as const },
+  { label: "ABOUT", to: "/about" as const },
+  { label: "CONTACT", to: "/contact" as const },
 ];
 
 export function Footer() {
@@ -28,15 +30,14 @@ export function Footer() {
             {LINKS.map((l) => (
               <Link
                 key={l.label}
-                to="/"
-                hash={l.hash}
+                to={l.to}
                 className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
               >
                 {l.label}
               </Link>
             ))}
             <a
-              href="https://instagram.com"
+              href={SITE.instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
@@ -44,20 +45,28 @@ export function Footer() {
               INSTAGRAM
             </a>
             <a
-              href="mailto:hello@zzerkoff.com"
+              href={whatsappUrl(`Hi ${SITE.brand},`)}
+              target="_blank"
+              rel="noreferrer"
               className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
             >
-              CONTACT
+              WHATSAPP
+            </a>
+            <a
+              href={`mailto:${SITE.email}`}
+              className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              EMAIL
             </a>
           </div>
         </div>
 
         <div className="mt-20 flex flex-col items-center gap-3 border-t border-border/50 py-8 text-[10px] uppercase tracking-[0.4em] text-muted-foreground sm:flex-row sm:justify-between">
-          <span>Dhaka, Bangladesh</span>
+          <span>{SITE.location}</span>
           <span className="font-editorial text-xs normal-case italic tracking-[0.2em] text-chrome/70">
-            Objects for the Afterdark.
+            {SITE.tagline}
           </span>
-          <span>© 2026 ZZERKOFF</span>
+          <span>© 2026 {SITE.brand}</span>
         </div>
       </div>
 
