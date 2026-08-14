@@ -84,6 +84,7 @@ function ProductDetail({ product }: { product: Product }) {
     orderMessage({
       name: product.name,
       code: product.product_code,
+      category: product.category,
       price: Number(product.price) * qty,
       size: [size, finish].filter(Boolean).join(" / "),
       quantity: qty,
