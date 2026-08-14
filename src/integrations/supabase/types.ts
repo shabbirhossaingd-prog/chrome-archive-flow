@@ -17,6 +17,7 @@ export type Database = {
       categories: {
         Row: {
           active: boolean
+          code_prefix: string
           created_at: string
           id: string
           image_url: string | null
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          code_prefix?: string
           created_at?: string
           id?: string
           image_url?: string | null
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          code_prefix?: string
           created_at?: string
           id?: string
           image_url?: string | null
@@ -44,9 +47,35 @@ export type Database = {
         }
         Relationships: []
       }
+      category_counters: {
+        Row: {
+          category_slug: string
+          last_number: number
+          updated_at: string
+        }
+        Insert: {
+          category_slug: string
+          last_number?: number
+          updated_at?: string
+        }
+        Update: {
+          category_slug?: string
+          last_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_counters_category_slug_fkey"
+            columns: ["category_slug"]
+            isOneToOne: true
+            referencedRelation: "categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       products: {
         Row: {
-          archive: boolean
+          archived: boolean
           care: string
           category: string
           collection_name: string
@@ -64,6 +93,8 @@ export type Database = {
           price: number
           primary_image: string
           product_code: string
+          published: boolean
+          quantity_available: number
           short_description: string
           size_guide: string
           sizes: string[]
@@ -74,7 +105,7 @@ export type Database = {
           whatsapp_available: boolean
         }
         Insert: {
-          archive?: boolean
+          archived?: boolean
           care?: string
           category: string
           collection_name?: string
@@ -92,6 +123,8 @@ export type Database = {
           price?: number
           primary_image?: string
           product_code: string
+          published?: boolean
+          quantity_available?: number
           short_description?: string
           size_guide?: string
           sizes?: string[]
@@ -102,7 +135,7 @@ export type Database = {
           whatsapp_available?: boolean
         }
         Update: {
-          archive?: boolean
+          archived?: boolean
           care?: string
           category?: string
           collection_name?: string
@@ -120,6 +153,8 @@ export type Database = {
           price?: number
           primary_image?: string
           product_code?: string
+          published?: boolean
+          quantity_available?: number
           short_description?: string
           size_guide?: string
           sizes?: string[]
@@ -138,6 +173,45 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      site_settings: {
+        Row: {
+          brand_name: string
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          email: string
+          id: string
+          instagram_url: string
+          location: string
+          updated_at: string
+          whatsapp_number: string
+        }
+        Insert: {
+          brand_name?: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          email?: string
+          id?: string
+          instagram_url?: string
+          location?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          brand_name?: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          email?: string
+          id?: string
+          instagram_url?: string
+          location?: string
+          updated_at?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -172,6 +246,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_product_code: { Args: { _category: string }; Returns: string }
+      peek_product_code: { Args: { _category: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
