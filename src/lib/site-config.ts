@@ -1,6 +1,7 @@
 /**
- * ZZERKOFF — GLOBAL SETTINGS
- * Change these values once and they update everywhere on the site.
+ * ZZERKOFF — GLOBAL DEFAULTS
+ * These are fallbacks. Live values are managed in the admin panel
+ * (/admin/settings) and read through `useSite()` in src/lib/settings.ts.
  */
 export const SITE = {
   brand: "ZZERKOFF",
@@ -8,45 +9,78 @@ export const SITE = {
   currencySymbol: "৳",
   currencyCode: "BDT",
   /** WhatsApp number in international format, digits only. */
-  whatsappNumber: "8801XXXXXXXXX",
+  whatsappNumber: "8801410545930",
   instagramHandle: "@zzerkoff",
-  instagramUrl: "https://instagram.com/zzerkoff",
-  email: "hello@zzerkoff.com",
-  location: "DHAKA / BANGLADESH",
+  instagramUrl: "https://www.instagram.com/zzerkoff/",
+  email: "zzerkoff.official@gmail.com",
+  location: "Dhaka, Bangladesh",
   delivery: "Dhaka 1-2 days. Outside Dhaka 2-4 days. Cash on delivery available.",
 } as const;
 
-export const formatPrice = (n: number | string) =>
-  `${SITE.currencySymbol}${Number(n).toLocaleString("en-US")}`;
+export const formatPrice = (n: number | string, symbol: string = SITE.currencySymbol) =>
+  `${symbol}${Number(n).toLocaleString("en-US")}`;
 
 export const STOCK_OPTIONS = ["IN STOCK", "LOW STOCK", "SOLD OUT"] as const;
 
-export function whatsappUrl(text: string) {
-  return `https://wa.me/${SITE.whatsappNumber}?text=${encodeURIComponent(text)}`;
+export function whatsappUrl(text: string, number: string = SITE.whatsappNumber) {
+  return `https://wa.me/${number.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 }
 
 export function orderMessage(opts: {
+  brand?: string;
   name: string;
   code: string;
+  category: string;
   price: number | string;
+  symbol?: string;
   size?: string | null;
   quantity: number;
 }) {
+  const symbol = opts.symbol ?? SITE.currencySymbol;
   return [
-    `Hi ${SITE.brand},`,
+    `Hi ${opts.brand ?? SITE.brand},`,
     "",
-    "I want to order:",
+    "I want to order this object:",
     "",
     `Product: ${opts.name}`,
-    `Product Code: ${opts.code}`,
-    `Price: ${SITE.currencySymbol}${Number(opts.price).toLocaleString("en-US")}`,
-    `Selected Size: ${opts.size || "—"}`,
+    `Code: ${opts.code}`,
+    `Category: ${opts.category}`,
+    `Price: ${symbol}${Number(opts.price).toLocaleString("en-US")}`,
+    `Size: ${opts.size || "—"}`,
     `Quantity: ${opts.quantity}`,
     "",
     "Please confirm availability.",
   ].join("\n");
 }
 
-export function restockMessage(name: string, code: string) {
-  return `Hi ${SITE.brand},\n\nIs ${name} (${code}) going to be restocked?`;
+export function restockMessage(name: string, code: string, brand: string = SITE.brand) {
+  return [
+    `Hi ${brand},`,
+    "",
+    "I am interested in this object:",
+    "",
+    `Product: ${name}`,
+    `Code: ${code}`,
+    "",
+    "It is currently sold out.",
+    "",
+    "Please let me know when it becomes available again.",
+  ].join("\n");
+}
+
+export function contactMessage(opts: {
+  brand?: string;
+  name: string;
+  phone: string;
+  message: string;
+}) {
+  return [
+    `Hi ${opts.brand ?? SITE.brand},`,
+    "",
+    `Name: ${opts.name}`,
+    `Phone: ${opts.phone}`,
+    "",
+    "Message:",
+    opts.message,
+  ].join("\n");
 }
