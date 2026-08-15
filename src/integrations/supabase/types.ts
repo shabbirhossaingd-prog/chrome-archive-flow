@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_email: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string | null
+          id: string
+          label: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity: string
+          entity_id?: string | null
+          id?: string
+          label?: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           active: boolean
