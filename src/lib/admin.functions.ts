@@ -34,12 +34,14 @@ export const reserveProductCode = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ category: z.string().min(1) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
+    // Role check runs as the caller (RLS allows reading only their own roles).
+    const { data: roles, error: roleError } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin");
     if (roleError) throw roleError;
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!roles || roles.length === 0) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: code, error } = await supabaseAdmin.rpc("next_product_code", {
