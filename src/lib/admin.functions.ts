@@ -50,3 +50,39 @@ export const reserveProductCode = createServerFn({ method: "POST" })
     if (error) throw error;
     return { code: code as string };
   });
+/** Records an admin action in the audit log (admins only). */
+export const logAdminAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        action: z.string().min(1).max(40),
+        entity: z.string().min(1).max(40),
+        entity_id: z.string().max(120).optional(),
+        label: z.string().max(200).optional(),
+        details: z.record(z.string(), z.unknown()).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: roles, error: roleError } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin");
+    if (roleError) throw roleError;
+    if (!roles || roles.length === 0) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("admin_audit_log").insert({
+      actor_id: context.userId,
+      actor_email: (context.claims as { email?: string })?.email ?? "",
+      action: data.action,
+      entity: data.entity,
+      entity_id: data.entity_id ?? null,
+      label: data.label ?? "",
+      details: (data.details ?? {}) as never,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
