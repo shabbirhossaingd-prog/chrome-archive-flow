@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import zzLogo from "@/assets/zz-logo.jpg.asset.json";
 import { LiquidChrome } from "./LiquidChrome";
-import { SITE, whatsappUrl } from "@/lib/site-config";
+import { SITE } from "@/lib/site-config";
+import { useSite } from "@/lib/settings";
 
 const LINKS = [
   { label: "SHOP", to: "/shop" as const },
@@ -12,6 +13,7 @@ const LINKS = [
 ];
 
 export function Footer() {
+  const site = useSite();
   return (
     <footer className="relative isolate overflow-hidden pt-32">
       <LiquidChrome className="-bottom-40 left-1/2 h-[46rem] w-[46rem] -translate-x-1/2" opacity={0.14} />
@@ -37,7 +39,7 @@ export function Footer() {
               </Link>
             ))}
             <a
-              href={SITE.instagramUrl}
+              href={site.instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
@@ -45,7 +47,7 @@ export function Footer() {
               INSTAGRAM
             </a>
             <a
-              href={whatsappUrl(`Hi ${SITE.brand},`)}
+              href={site.wa(`Hi ${site.brand},`)}
               target="_blank"
               rel="noreferrer"
               className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
@@ -53,7 +55,7 @@ export function Footer() {
               WHATSAPP
             </a>
             <a
-              href={`mailto:${SITE.email}`}
+              href={site.emailHref}
               className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
             >
               EMAIL
@@ -62,11 +64,11 @@ export function Footer() {
         </div>
 
         <div className="mt-20 flex flex-col items-center gap-3 border-t border-border/50 py-8 text-[10px] uppercase tracking-[0.4em] text-muted-foreground sm:flex-row sm:justify-between">
-          <span>{SITE.location}</span>
+          <span>{site.location}</span>
           <span className="font-editorial text-xs normal-case italic tracking-[0.2em] text-chrome/70">
             {SITE.tagline}
           </span>
-          <span>© 2026 {SITE.brand}</span>
+          <span>© 2026 {site.brand}</span>
         </div>
       </div>
 
