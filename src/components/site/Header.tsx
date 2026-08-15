@@ -2,8 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Search, Instagram, Menu, X } from "lucide-react";
 import { SmartImage } from "./SmartImage";
-import { formatPrice, matchesSearch, useProducts } from "@/lib/products";
-import { SITE } from "@/lib/site-config";
+import { matchesSearch, useProducts } from "@/lib/products";
+import { useSite } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -20,6 +20,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
   const { data: products = [] } = useProducts();
+  const site = useSite();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -66,7 +67,7 @@ export function Header() {
               <Search className="size-4" />
             </button>
             <a
-              href={SITE.instagramUrl}
+              href={site.instagramUrl}
               target="_blank"
               rel="noreferrer"
               aria-label="Instagram"
@@ -145,7 +146,7 @@ export function Header() {
                         </span>
                       </span>
                       <span className="text-[11px] tracking-[0.2em] text-chrome">
-                        {formatPrice(p.price)}
+                        {site.price(p.price)}
                       </span>
                     </Link>
                   </li>
@@ -182,12 +183,12 @@ export function Header() {
               ))}
             </nav>
             <a
-              href={SITE.instagramUrl}
+              href={site.instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="mt-auto pb-16 text-[10px] uppercase tracking-[0.45em] text-muted-foreground"
             >
-              INSTAGRAM {SITE.instagramHandle}
+              INSTAGRAM {site.instagramHandle}
             </a>
           </div>
         </div>
