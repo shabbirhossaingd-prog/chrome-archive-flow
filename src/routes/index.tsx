@@ -11,7 +11,6 @@ import { useCategories, useProducts, formatPrice } from "@/lib/products";
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { CategoryCard } from "@/components/site/CategoryCard";
 import { SmartImage } from "@/components/site/SmartImage";
-import zzLogo from "@/assets/zz-logo.jpg.asset.json";
 import campaign1 from "@/assets/campaign-1.jpg";
 import campaign2 from "@/assets/campaign-2.jpg";
 
@@ -63,7 +62,7 @@ function Index() {
 
         <Reveal>
           <img
-            src={zzLogo.url}
+            src="/images/zzerkoff-logo.png"
             alt="ZZERKOFF liquid chrome ZZ monogram"
             width={720}
             height={720}
