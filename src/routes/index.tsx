@@ -17,7 +17,7 @@ import campaign2 from "@/assets/campaign-2.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZZERKOFF — Objects for the Afterdark" },
+      { title: "Zzerkoff" },
       {
         name: "description",
         content:
