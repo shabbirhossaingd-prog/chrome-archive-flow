@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import zzLogo from "@/assets/zz-logo.jpg.asset.json";
 import { LiquidChrome } from "./LiquidChrome";
 import { SITE } from "@/lib/site-config";
 import { useSite } from "@/lib/settings";
@@ -21,7 +20,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="flex flex-col items-center">
           <img
-            src={zzLogo.url}
+            src="/images/zzerkoff-logo.png"
             alt="ZZERKOFF chrome monogram"
             loading="lazy"
             width={220}
