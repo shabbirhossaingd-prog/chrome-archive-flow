@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSite } from "@/lib/settings";
+import { toast } from "sonner";
+import {
+  createSteadfastShipment,
+  syncSteadfastShipment,
+} from "@/lib/steadfast.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: AdminOrders,
@@ -46,6 +51,13 @@ type Order = {
   shipped_at: string | null;
   delivered_at: string | null;
   cancelled_at: string | null;
+  steadfast_state: "not_sent" | "creating" | "connected" | "error";
+  steadfast_consignment_id: number | null;
+  steadfast_tracking_code: string | null;
+  steadfast_status: string | null;
+  steadfast_connected_at: string | null;
+  steadfast_synced_at: string | null;
+  steadfast_last_error: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -55,6 +67,18 @@ function AdminOrders() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [search, setSearch] = useState("");
+
+  const getAccessToken = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("Your admin session expired. Please sign in again.");
+    }
+
+    return session.access_token;
+  };
 
   const ordersQuery = useQuery({
     queryKey: ["admin-orders"],
@@ -78,9 +102,32 @@ function AdminOrders() {
         .eq("id", id);
 
       if (error) throw error;
+
+      if (status === "confirmed") {
+        const accessToken = await getAccessToken();
+        try {
+          const courier = await createSteadfastShipment({
+            data: { orderId: id, accessToken },
+          });
+          return { courierCreated: true, courier };
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "Steadfast connection failed.";
+          throw new Error(`Order confirmed. Steadfast: ${message}`);
+        }
+      }
+
+      return { courierCreated: false };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      if (result?.courierCreated) {
+        toast.success("Order confirmed and sent to Steadfast.");
+      }
+    },
+    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.error(error instanceof Error ? error.message : "Could not update order.");
     },
   });
 
@@ -90,6 +137,40 @@ function AdminOrders() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+
+  const connectSteadfast = useMutation({
+    mutationFn: async (id: string) => {
+      const accessToken = await getAccessToken();
+      return createSteadfastShipment({
+        data: { orderId: id, accessToken },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Steadfast parcel connected.");
+    },
+    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.error(error instanceof Error ? error.message : "Steadfast connection failed.");
+    },
+  });
+
+  const syncSteadfast = useMutation({
+    mutationFn: async (id: string) => {
+      const accessToken = await getAccessToken();
+      return syncSteadfastShipment({
+        data: { orderId: id, accessToken },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Steadfast status synced.");
+    },
+    onError: (error) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.error(error instanceof Error ? error.message : "Could not sync Steadfast.");
+    },
   });
 
   const orders = ordersQuery.data ?? [];
@@ -338,6 +419,90 @@ function AdminOrders() {
                         Reject payment
                       </button>
                     )}
+                  </div>
+                </div>
+
+                <div className="mt-5 border-t border-border/50 pt-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <span className="text-[8px] uppercase tracking-[0.32em] text-muted-foreground">
+                        Courier / Steadfast
+                      </span>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className={`rounded-xl border px-3 py-2 text-[8px] uppercase tracking-[0.22em] ${
+                          order.steadfast_state === "connected"
+                            ? "border-chrome/50 text-chrome"
+                            : "border-border/50 text-muted-foreground"
+                        }`}>
+                          {order.steadfast_state || "not_sent"}
+                        </span>
+                        {order.steadfast_status && (
+                          <span className="rounded-xl border border-border/50 px-3 py-2 text-[8px] uppercase tracking-[0.22em] text-foreground">
+                            {order.steadfast_status.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+
+                      {order.steadfast_consignment_id && (
+                        <p className="mt-3 text-[9px] tracking-[0.1em] text-muted-foreground">
+                          Consignment ID: {order.steadfast_consignment_id}
+                        </p>
+                      )}
+                      {order.steadfast_tracking_code && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <p className="text-[9px] tracking-[0.1em] text-muted-foreground">
+                            Tracking: {order.steadfast_tracking_code}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(order.steadfast_tracking_code || "")}
+                            className="text-[8px] uppercase tracking-[0.22em] text-chrome"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      )}
+                      {order.steadfast_synced_at && (
+                        <p className="mt-2 text-[8px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Synced {new Date(order.steadfast_synced_at).toLocaleString("en-GB", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      )}
+                      {order.steadfast_last_error && (
+                        <p className="mt-3 max-w-2xl text-[9px] leading-relaxed text-muted-foreground">
+                          {order.steadfast_last_error}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {order.status !== "new" &&
+                        order.status !== "cancelled" &&
+                        order.status !== "delivered" &&
+                        order.steadfast_state !== "connected" && (
+                          <button
+                            type="button"
+                            onClick={() => connectSteadfast.mutate(order.id)}
+                            disabled={connectSteadfast.isPending}
+                            className="rounded-xl border border-chrome/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-foreground disabled:opacity-50"
+                          >
+                            {order.steadfast_state === "error" ? "Retry Steadfast" : "Send to Steadfast"}
+                          </button>
+                        )}
+
+                      {order.steadfast_state === "connected" && (
+                        <button
+                          type="button"
+                          onClick={() => syncSteadfast.mutate(order.id)}
+                          disabled={syncSteadfast.isPending}
+                          className="rounded-xl border border-chrome/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-foreground disabled:opacity-50"
+                        >
+                          Sync Steadfast
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

@@ -116,8 +116,14 @@ export function OrderModal({
       setError("Please enter your name.");
       return;
     }
-    if (phone.trim().length < 7) {
-      setError("Please enter a valid phone number.");
+    const phoneDigits = phone.replace(/\D/g, "");
+    const normalizedPhone =
+      phoneDigits.length === 13 && phoneDigits.startsWith("8801")
+        ? `0${phoneDigits.slice(3)}`
+        : phoneDigits;
+
+    if (normalizedPhone.length !== 11) {
+      setError("Please enter an 11-digit Bangladesh phone number.");
       return;
     }
     if (address.trim().length < 5) {
@@ -138,7 +144,7 @@ export function OrderModal({
       {
         p_product_id: productId,
         p_customer_name: name.trim(),
-        p_phone: phone.trim(),
+        p_phone: normalizedPhone,
         p_address: address.trim(),
         p_size: size || null,
         p_finish: finish || null,

@@ -6,6 +6,7 @@ import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { Reveal } from "@/components/site/Reveal";
 import { supabase } from "@/integrations/supabase/client";
 import { useSite } from "@/lib/settings";
+import { getPublicSteadfastStatus } from "@/lib/steadfast.functions";
 
 export const Route = createFileRoute("/track-order")({
   head: () => ({
@@ -75,7 +76,24 @@ function TrackOrderPage() {
       return;
     }
 
-    setOrder(result as TrackedOrder);
+    let tracked = result as TrackedOrder;
+
+    try {
+      const courier = await getPublicSteadfastStatus({
+        data: {
+          orderNumber: orderNumber.trim(),
+          phone: phone.trim(),
+        },
+      });
+
+      if (courier?.publicStatus) {
+        tracked = { ...tracked, status: courier.publicStatus };
+      }
+    } catch {
+      // Fall back to website order status if the courier API is unavailable.
+    }
+
+    setOrder(tracked);
   };
 
   const selected = order
