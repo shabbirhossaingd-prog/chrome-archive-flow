@@ -317,7 +317,6 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                 </a>
               </>
             ) : (
-              product.whatsapp_available && (
                 <button
                   type="button"
                   onClick={() => setOrderOpen(true)}
@@ -326,7 +325,6 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                   Place order
                   <ArrowUpRight className="size-4 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </button>
-              )
             )}
           </div>
         </Reveal>

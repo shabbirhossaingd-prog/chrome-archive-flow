@@ -38,6 +38,9 @@ type Order = {
   selected_finish: string | null;
   total_price: number | string;
   admin_note: string;
+  payment_method: "cod" | "bkash" | "nagad";
+  payment_status: "unpaid" | "pending_verification" | "paid" | "rejected" | "refunded";
+  transaction_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -76,8 +79,21 @@ function AdminOrders() {
     },
   });
 
+  const updatePayment = useMutation({
+    mutationFn: async ({ id, payment_status }: { id: string; payment_status: Order["payment_status"] }) => {
+      const { error } = await (supabase as any).from("orders").update({ payment_status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+
   const orders = ordersQuery.data ?? [];
   const newCount = orders.filter((o) => o.status === "new").length;
+  const confirmedCount = orders.filter((o) => o.status === "confirmed").length;
+  const processingCount = orders.filter((o) => o.status === "processing").length;
+  const shippedCount = orders.filter((o) => o.status === "shipped").length;
+  const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+  const cancelledCount = orders.filter((o) => o.status === "cancelled").length;
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -120,6 +136,22 @@ function AdminOrders() {
           <RefreshCw className={`size-3.5 ${ordersQuery.isFetching ? "animate-spin" : ""}`} />
           Refresh
         </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        {[
+          ["NEW", newCount],
+          ["CONFIRMED", confirmedCount],
+          ["PROCESSING", processingCount],
+          ["SHIPPED", shippedCount],
+          ["DELIVERED", deliveredCount],
+          ["CANCELLED", cancelledCount],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="glass-panel rounded-[20px] p-4">
+            <span className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground">{label}</span>
+            <p className="mt-2 font-display text-xl tracking-[0.14em] text-foreground">{value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="glass-panel rounded-[24px] p-4 sm:p-5">
@@ -191,23 +223,23 @@ function AdminOrders() {
                     </p>
                   </div>
 
-                  <select
-                    value={order.status}
-                    onChange={(e) =>
-                      updateStatus.mutate({
-                        id: order.id,
-                        status: e.target.value as OrderStatus,
-                      })
-                    }
-                    disabled={updateStatus.isPending}
-                    className="rounded-xl border border-chrome/40 bg-background px-4 py-3 text-[9px] uppercase tracking-[0.25em] text-foreground outline-none"
-                  >
+                  <div className="flex max-w-xl flex-wrap justify-end gap-2">
                     {STATUSES.map((status) => (
-                      <option key={status} value={status}>
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => updateStatus.mutate({ id: order.id, status })}
+                        disabled={updateStatus.isPending}
+                        className={`rounded-xl border px-3 py-3 text-[8px] uppercase tracking-[0.22em] transition-colors ${
+                          order.status === status
+                            ? "border-chrome/70 bg-white/[0.07] text-foreground"
+                            : "border-border/50 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
                         {status}
-                      </option>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 <div className="mt-5 grid gap-6 lg:grid-cols-3">
@@ -263,6 +295,21 @@ function AdminOrders() {
                       </a>
                     )}
                   </div>
+                </div>
+
+                <div className="mt-5 border-t border-border/50 pt-5">
+                  <span className="text-[8px] uppercase tracking-[0.32em] text-muted-foreground">Payment</span>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <span className="rounded-xl border border-border/60 px-3 py-2 text-[8px] uppercase tracking-[0.22em] text-foreground">{order.payment_method}</span>
+                    <span className="rounded-xl border border-chrome/40 px-3 py-2 text-[8px] uppercase tracking-[0.22em] text-chrome">{order.payment_status}</span>
+                    {order.transaction_id && <span className="text-[9px] tracking-[0.12em] text-muted-foreground">TrxID: {order.transaction_id}</span>}
+                  </div>
+                  {order.payment_method !== "cod" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => updatePayment.mutate({ id: order.id, payment_status: "paid" })} disabled={updatePayment.isPending} className="rounded-xl border border-chrome/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-foreground">Mark paid</button>
+                      <button type="button" onClick={() => updatePayment.mutate({ id: order.id, payment_status: "rejected" })} disabled={updatePayment.isPending} className="rounded-xl border border-border/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-muted-foreground">Reject payment</button>
+                    </div>
+                  )}
                 </div>
 
                 {order.customer_note && (

@@ -22,11 +22,17 @@ type Form = {
   default_delivery: string;
   default_care: string;
   default_size_guide: string;
+  cod_enabled: boolean;
+  bkash_enabled: boolean;
+  bkash_number: string;
+  nagad_enabled: boolean;
+  nagad_number: string;
 };
 
 function AdminSettings() {
   const queryClient = useQueryClient();
   const { data: settings, isLoading } = useQuery(settingsQuery);
+  const settingsAny = settings as any;
   const [form, setForm] = useState<Form | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -59,9 +65,14 @@ function AdminSettings() {
       default_size_guide:
         settings?.default_size_guide ??
         "Message ZZERKOFF on WhatsApp for exact measurements before ordering.",
+      cod_enabled: settingsAny?.cod_enabled ?? true,
+      bkash_enabled: settingsAny?.bkash_enabled ?? false,
+      bkash_number: settingsAny?.bkash_number ?? "",
+      nagad_enabled: settingsAny?.nagad_enabled ?? false,
+      nagad_number: settingsAny?.nagad_number ?? "",
     };
 
-  const set = (key: keyof Form, value: string) => {
+  const set = (key: keyof Form, value: string | boolean) => {
     setDirty(true);
     setForm({ ...current, [key]: value });
   };
@@ -73,13 +84,13 @@ function AdminSettings() {
         whatsapp_number: current.whatsapp_number.replace(/\D/g, ""),
       };
       if (settings) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("site_settings")
           .update(values)
           .eq("id", settings.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("site_settings").insert(values);
+        const { error } = await (supabase as any).from("site_settings").insert(values);
         if (error) throw error;
       }
     },
@@ -162,6 +173,33 @@ function AdminSettings() {
                 value={current.currency_symbol}
                 onChange={(e) => set("currency_symbol", e.target.value)}
               />
+            </Field>
+          </div>
+
+          <div className="glass-panel space-y-5 rounded-[24px] p-6">
+            <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+              PAYMENT METHODS
+            </h2>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Manual payment verification. Never request customer PIN or OTP.
+            </p>
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-4">
+              <span className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Cash on delivery</span>
+              <input type="checkbox" checked={current.cod_enabled} onChange={(e) => set("cod_enabled", e.target.checked)} />
+            </label>
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-4">
+              <span className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">bKash</span>
+              <input type="checkbox" checked={current.bkash_enabled} onChange={(e) => set("bkash_enabled", e.target.checked)} />
+            </label>
+            <Field label="bKash personal number">
+              <input className={adminField} value={current.bkash_number} onChange={(e) => set("bkash_number", e.target.value)} placeholder="01XXXXXXXXX" />
+            </Field>
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-4">
+              <span className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">Nagad</span>
+              <input type="checkbox" checked={current.nagad_enabled} onChange={(e) => set("nagad_enabled", e.target.checked)} />
+            </label>
+            <Field label="Nagad personal number">
+              <input className={adminField} value={current.nagad_number} onChange={(e) => set("nagad_number", e.target.value)} placeholder="01XXXXXXXXX" />
             </Field>
           </div>
 

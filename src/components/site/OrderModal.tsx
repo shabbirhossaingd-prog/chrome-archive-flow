@@ -41,6 +41,9 @@ export function OrderModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bkash" | "nagad">("cod");
+  const [transactionId, setTransactionId] = useState("");
+  const [paymentSettings, setPaymentSettings] = useState<any>(null);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
@@ -54,6 +57,16 @@ export function OrderModal({
   if (!open) return null;
 
   const total = unitPrice * quantity;
+
+  useEffect(() => {
+    if (!open) return;
+    (supabase as any)
+      .from("site_settings")
+      .select("cod_enabled,bkash_enabled,bkash_number,nagad_enabled,nagad_number")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: { data: any }) => setPaymentSettings(data ?? null));
+  }, [open]);
 
   const close = () => {
     setError("");
@@ -110,6 +123,11 @@ export function OrderModal({
       return;
     }
 
+    if (paymentMethod !== "cod" && transactionId.trim().length < 4) {
+      setError("Please enter your transaction ID.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -127,6 +145,8 @@ export function OrderModal({
         p_latitude: latitude,
         p_longitude: longitude,
         p_note: note.trim() || null,
+        p_payment_method: paymentMethod,
+        p_transaction_id: paymentMethod === "cod" ? null : transactionId.trim(),
       },
     );
 
@@ -279,6 +299,45 @@ export function OrderModal({
                     </a>
                   )}
                 </div>
+
+                <div>
+                  <label className="mb-2 block text-[8px] uppercase tracking-[0.35em] text-muted-foreground">
+                    Payment method
+                  </label>
+                  <div className="space-y-2">
+                    {(paymentSettings?.cod_enabled !== false) && (
+                      <button type="button" onClick={() => { setPaymentMethod("cod"); setTransactionId(""); }} className={`w-full rounded-2xl border px-4 py-4 text-left ${paymentMethod === "cod" ? "border-chrome/60 bg-white/[0.05]" : "border-border/60 bg-white/[0.02]"}`}>
+                        <span className="text-[9px] uppercase tracking-[0.28em] text-foreground">Cash on delivery</span>
+                      </button>
+                    )}
+                    {paymentSettings?.bkash_enabled && paymentSettings?.bkash_number && (
+                      <button type="button" onClick={() => { setPaymentMethod("bkash"); setTransactionId(""); }} className={`w-full rounded-2xl border px-4 py-4 text-left ${paymentMethod === "bkash" ? "border-chrome/60 bg-white/[0.05]" : "border-border/60 bg-white/[0.02]"}`}>
+                        <span className="block text-[9px] uppercase tracking-[0.28em] text-foreground">bKash</span>
+                        <span className="mt-2 block text-[9px] tracking-[0.12em] text-muted-foreground">Send Money to: {paymentSettings.bkash_number}</span>
+                        <span className="mt-1 block text-[9px] tracking-[0.12em] text-chrome">Amount: {currencySymbol}{total.toLocaleString("en-US")}</span>
+                      </button>
+                    )}
+                    {paymentSettings?.nagad_enabled && paymentSettings?.nagad_number && (
+                      <button type="button" onClick={() => { setPaymentMethod("nagad"); setTransactionId(""); }} className={`w-full rounded-2xl border px-4 py-4 text-left ${paymentMethod === "nagad" ? "border-chrome/60 bg-white/[0.05]" : "border-border/60 bg-white/[0.02]"}`}>
+                        <span className="block text-[9px] uppercase tracking-[0.28em] text-foreground">Nagad</span>
+                        <span className="mt-2 block text-[9px] tracking-[0.12em] text-muted-foreground">Send Money to: {paymentSettings.nagad_number}</span>
+                        <span className="mt-1 block text-[9px] tracking-[0.12em] text-chrome">Amount: {currencySymbol}{total.toLocaleString("en-US")}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {paymentMethod !== "cod" && (
+                  <div>
+                    <label className="mb-2 block text-[8px] uppercase tracking-[0.35em] text-muted-foreground">
+                      Transaction ID *
+                    </label>
+                    <input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Enter bKash / Nagad TrxID" className={inputClass} />
+                    <p className="mt-2 text-[9px] leading-relaxed tracking-[0.06em] text-muted-foreground">
+                      Send Money first, then enter the TrxID. Never share your PIN or OTP.
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label className="mb-2 block text-[8px] uppercase tracking-[0.35em] text-muted-foreground">

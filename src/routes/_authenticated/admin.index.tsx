@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAdminProducts, isSoldOut } from "@/lib/products";
 import { useAdminCollections, useAdminPosts } from "@/lib/cms";
 
@@ -8,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
 
 const quickLinks = [
   { label: "+ NEW OBJECT", to: "/admin/products/new" as const },
+  { label: "MANAGE ORDERS", to: "/admin/orders" as const },
   { label: "+ NEW BLOG POST", to: "/admin/blog/new" as const },
   { label: "MANAGE OBJECTS", to: "/admin/products" as const },
   { label: "MANAGE COLLECTIONS", to: "/admin/collections" as const },
@@ -19,8 +22,19 @@ function AdminDashboard() {
   const { data: products = [], isLoading: loadingProducts } = useAdminProducts();
   const { data: collections = [], isLoading: loadingCollections } = useAdminCollections();
   const { data: posts = [], isLoading: loadingPosts } = useAdminPosts();
+  const { data: orders = [], isLoading: loadingOrders } = useQuery({
+    queryKey: ["admin-dashboard-orders"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("orders")
+        .select("id,status,payment_status,created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
-  const loading = loadingProducts || loadingCollections || loadingPosts;
+  const loading = loadingProducts || loadingCollections || loadingPosts || loadingOrders;
   const stats = [
     { label: "TOTAL OBJECTS", value: products.length },
     { label: "PUBLISHED", value: products.filter((p) => p.published).length },
@@ -33,6 +47,10 @@ function AdminDashboard() {
     { label: "ARCHIVED", value: products.filter((p) => p.archived).length },
     { label: "FEATURED OBJECTS", value: products.filter((p) => p.featured).length },
     { label: "BLOG POSTS", value: posts.length },
+    { label: "NEW ORDERS", value: orders.filter((o: any) => o.status === "new").length },
+    { label: "PROCESSING", value: orders.filter((o: any) => o.status === "processing").length },
+    { label: "SHIPPED", value: orders.filter((o: any) => o.status === "shipped").length },
+    { label: "DELIVERED", value: orders.filter((o: any) => o.status === "delivered").length },
   ];
 
   return (
