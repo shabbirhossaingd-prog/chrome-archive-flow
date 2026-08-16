@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, RefreshCw } from "lucide-react";
+import { ArrowUpRight, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSite } from "@/lib/settings";
 import { toast } from "sonner";
@@ -51,7 +51,7 @@ type Order = {
   shipped_at: string | null;
   delivered_at: string | null;
   cancelled_at: string | null;
-  steadfast_state: "not_sent" | "creating" | "connected" | "error";
+  steadfast_state: "not_sent" | "creating" | "connected" | "error" | "test";
   steadfast_consignment_id: number | null;
   steadfast_tracking_code: string | null;
   steadfast_status: string | null;
@@ -65,6 +65,7 @@ type Order = {
 function AdminOrders() {
   const site = useSite();
   const queryClient = useQueryClient();
+  const steadfastTestMode = (site.settings as any)?.steadfast_test_mode ?? true;
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [search, setSearch] = useState("");
 
@@ -104,12 +105,29 @@ function AdminOrders() {
       if (error) throw error;
 
       if (status === "confirmed") {
+        if (steadfastTestMode) {
+          const { error: testError } = await (supabase as any)
+            .from("orders")
+            .update({
+              steadfast_state: "test",
+              steadfast_status: "test_mode",
+              steadfast_connected_at: new Date().toISOString(),
+              steadfast_synced_at: new Date().toISOString(),
+              steadfast_last_error: null,
+            })
+            .eq("id", id)
+            .neq("steadfast_state", "connected");
+
+          if (testError) throw testError;
+          return { courierCreated: false, testMode: true };
+        }
+
         const accessToken = await getAccessToken();
         try {
           const courier = await createSteadfastShipment({
             data: { orderId: id, accessToken },
           });
-          return { courierCreated: true, courier };
+          return { courierCreated: true, testMode: false, courier };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Steadfast connection failed.";
@@ -117,11 +135,13 @@ function AdminOrders() {
         }
       }
 
-      return { courierCreated: false };
+      return { courierCreated: false, testMode: false };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      if (result?.courierCreated) {
+      if (result?.testMode) {
+        toast.success("Test Mode: order confirmed. Nothing was sent to Steadfast.");
+      } else if (result?.courierCreated) {
         toast.success("Order confirmed and sent to Steadfast.");
       }
     },
@@ -141,14 +161,35 @@ function AdminOrders() {
 
   const connectSteadfast = useMutation({
     mutationFn: async (id: string) => {
+      if (steadfastTestMode) {
+        const { error } = await (supabase as any)
+          .from("orders")
+          .update({
+            steadfast_state: "test",
+            steadfast_status: "test_mode",
+            steadfast_connected_at: new Date().toISOString(),
+            steadfast_synced_at: new Date().toISOString(),
+            steadfast_last_error: null,
+          })
+          .eq("id", id)
+          .neq("steadfast_state", "connected");
+
+        if (error) throw error;
+        return { testMode: true };
+      }
+
       const accessToken = await getAccessToken();
       return createSteadfastShipment({
         data: { orderId: id, accessToken },
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      toast.success("Steadfast parcel connected.");
+      toast.success(
+        (result as any)?.testMode
+          ? "Test Mode: simulated courier connection only."
+          : "Steadfast parcel connected.",
+      );
     },
     onError: (error) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
@@ -158,18 +199,59 @@ function AdminOrders() {
 
   const syncSteadfast = useMutation({
     mutationFn: async (id: string) => {
+      if (steadfastTestMode) {
+        return { testMode: true };
+      }
+
       const accessToken = await getAccessToken();
       return syncSteadfastShipment({
         data: { orderId: id, accessToken },
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      toast.success("Steadfast status synced.");
+      toast.success(
+        (result as any)?.testMode
+          ? "Test Mode: no real courier status was requested."
+          : "Steadfast status synced.",
+      );
     },
     onError: (error) => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       toast.error(error instanceof Error ? error.message : "Could not sync Steadfast.");
+    },
+  });
+
+  const deleteCancelledOrder = useMutation({
+    mutationFn: async (order: Order) => {
+      if (order.status !== "cancelled") {
+        throw new Error("Only cancelled orders can be deleted.");
+      }
+
+      if (
+        order.steadfast_state === "connected" ||
+        order.steadfast_consignment_id ||
+        order.steadfast_tracking_code
+      ) {
+        throw new Error(
+          "This order is connected to a real Steadfast parcel, so it is kept for courier/audit safety.",
+        );
+      }
+
+      const { error } = await (supabase as any)
+        .from("orders")
+        .delete()
+        .eq("id", order.id)
+        .eq("status", "cancelled");
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      toast.success("Cancelled test order permanently deleted.");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Could not delete order.");
     },
   });
 
@@ -222,6 +304,17 @@ function AdminOrders() {
           <RefreshCw className={`size-3.5 ${ordersQuery.isFetching ? "animate-spin" : ""}`} />
           Refresh
         </button>
+      </div>
+
+      <div className="glass-panel rounded-[20px] border border-border/60 p-4">
+        <span className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground">
+          Steadfast mode
+        </span>
+        <p className="mt-2 text-[10px] uppercase tracking-[0.24em] text-chrome">
+          {steadfastTestMode
+            ? "TEST MODE — CONFIRM WILL NOT SEND A REAL PARCEL"
+            : "LIVE MODE — CONFIRM CAN CREATE A REAL STEADFAST PARCEL"}
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -430,7 +523,7 @@ function AdminOrders() {
                       </span>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <span className={`rounded-xl border px-3 py-2 text-[8px] uppercase tracking-[0.22em] ${
-                          order.steadfast_state === "connected"
+                          order.steadfast_state === "connected" || order.steadfast_state === "test"
                             ? "border-chrome/50 text-chrome"
                             : "border-border/50 text-muted-foreground"
                         }`}>
@@ -481,7 +574,7 @@ function AdminOrders() {
                       {order.status !== "new" &&
                         order.status !== "cancelled" &&
                         order.status !== "delivered" &&
-                        order.steadfast_state !== "connected" && (
+                        order.steadfast_state !== "connected" && order.steadfast_state !== "test" && (
                           <button
                             type="button"
                             onClick={() => connectSteadfast.mutate(order.id)}
@@ -521,6 +614,31 @@ function AdminOrders() {
                     </div>
                   </div>
                 )}
+
+                {order.status === "cancelled" &&
+                  order.steadfast_state !== "connected" &&
+                  !order.steadfast_consignment_id &&
+                  !order.steadfast_tracking_code && (
+                    <div className="mt-5 border-t border-border/50 pt-5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const ok = window.confirm(
+                            `Permanently delete ${order.order_number}? This cannot be undone.`,
+                          );
+                          if (ok) deleteCancelledOrder.mutate(order);
+                        }}
+                        disabled={deleteCancelledOrder.isPending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-border/70 px-4 py-3 text-[8px] uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                      >
+                        <Trash2 className="size-3.5" />
+                        Delete cancelled order
+                      </button>
+                      <p className="mt-2 text-[8px] leading-relaxed text-muted-foreground">
+                        Available only for cancelled orders that were not connected to a real Steadfast parcel.
+                      </p>
+                    </div>
+                  )}
 
                 {order.customer_note && (
                   <div className="mt-5 border-t border-border/50 pt-5">

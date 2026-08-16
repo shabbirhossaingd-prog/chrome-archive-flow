@@ -27,6 +27,7 @@ type Form = {
   bkash_number: string;
   nagad_enabled: boolean;
   nagad_number: string;
+  steadfast_test_mode: boolean;
 };
 
 function AdminSettings() {
@@ -70,6 +71,7 @@ function AdminSettings() {
       bkash_number: settingsAny?.bkash_number ?? "",
       nagad_enabled: settingsAny?.nagad_enabled ?? false,
       nagad_number: settingsAny?.nagad_number ?? "",
+      steadfast_test_mode: settingsAny?.steadfast_test_mode ?? true,
     };
 
   const set = (key: keyof Form, value: string | boolean) => {
@@ -201,6 +203,38 @@ function AdminSettings() {
             <Field label="Nagad personal number">
               <input className={adminField} value={current.nagad_number} onChange={(e) => set("nagad_number", e.target.value)} placeholder="01XXXXXXXXX" />
             </Field>
+          </div>
+
+          <div className="glass-panel space-y-5 rounded-[24px] p-6">
+            <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+              COURIER / STEADFAST
+            </h2>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              Keep Test Mode ON while testing. In Test Mode, confirming an order never creates a real Steadfast parcel.
+            </p>
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-border/60 px-4 py-4">
+              <div>
+                <span className="block text-[9px] uppercase tracking-[0.28em] text-foreground">
+                  Steadfast Test Mode
+                </span>
+                <span className="mt-2 block text-[9px] leading-relaxed text-muted-foreground">
+                  ON = simulate only. OFF = CONFIRMED can create a real courier parcel.
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={current.steadfast_test_mode}
+                onChange={(e) => set("steadfast_test_mode", e.target.checked)}
+              />
+            </label>
+            <div className="rounded-xl border border-border/50 bg-white/[0.02] px-4 py-4">
+              <span className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground">
+                Current mode
+              </span>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.25em] text-chrome">
+                {current.steadfast_test_mode ? "TEST — NO REAL PARCELS" : "LIVE — REAL STEADFAST PARCELS"}
+              </p>
+            </div>
           </div>
 
           <div className="glass-panel space-y-5 rounded-[24px] p-6">
