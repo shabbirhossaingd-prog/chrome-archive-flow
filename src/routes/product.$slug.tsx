@@ -19,7 +19,8 @@ import {
   useAllPublishedProducts,
   type Product,
 } from "@/lib/products";
-import { SITE, orderMessage, restockMessage, whatsappUrl } from "@/lib/site-config";
+import { SITE, restockMessage } from "@/lib/site-config";
+import { OrderModal } from "@/components/site/OrderModal";
 import { useSite } from "@/lib/settings";
 
 const pretty = (slug: string) => slug.replace(/-/g, " ").toUpperCase();
@@ -79,6 +80,7 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
   const [size, setSize] = useState<string>(sizes[0] ?? "");
   const [finish, setFinish] = useState<string>(finishes[0] ?? "");
   const [qty, setQty] = useState(1);
+  const [orderOpen, setOrderOpen] = useState(false);
   const soldOut = isSoldOut(product);
 
   const delivery =
@@ -122,18 +124,6 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
       .slice(0, 2)
       .map((x) => x.p);
   }, [product, products]);
-
-  const orderHref = whatsappUrl(
-    orderMessage({
-      name: product.name,
-      code: product.product_code,
-      category: product.category,
-      price: Number(product.price) * qty,
-      size: [size, finish].filter(Boolean).join(" / "),
-      quantity: qty,
-    }),
-    site.whatsappNumber,
-  );
 
   const pill = (active: boolean) =>
     `rounded-xl border px-4 py-3 text-[9px] uppercase tracking-[0.3em] transition-colors ${
@@ -328,20 +318,32 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
               </>
             ) : (
               product.whatsapp_available && (
-                <a
-                  href={orderHref}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setOrderOpen(true)}
                   className="group flex w-full items-center justify-center gap-3 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-6 text-[10px] uppercase tracking-[0.45em] text-foreground transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
                 >
-                  Order via WhatsApp
+                  Place order
                   <ArrowUpRight className="size-4 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </a>
+                </button>
               )
             )}
           </div>
         </Reveal>
       </div>
+
+      <OrderModal
+        open={orderOpen}
+        onClose={() => setOrderOpen(false)}
+        productId={product.id}
+        productName={product.name}
+        productCode={product.product_code}
+        unitPrice={Number(product.price)}
+        currencySymbol={site.currencySymbol}
+        size={size}
+        finish={finish}
+        quantity={qty}
+      />
 
       {related.length > 0 && (
         <section className="pb-32">
