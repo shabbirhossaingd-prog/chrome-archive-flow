@@ -54,8 +54,6 @@ export function OrderModal({
     };
   }, [open]);
 
-  if (!open) return null;
-
   const total = unitPrice * quantity;
 
   useEffect(() => {
@@ -67,6 +65,8 @@ export function OrderModal({
       .maybeSingle()
       .then(({ data }: { data: any }) => setPaymentSettings(data ?? null));
   }, [open]);
+
+  if (!open) return null;
 
   const close = () => {
     setError("");
