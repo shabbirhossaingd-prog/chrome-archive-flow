@@ -24,6 +24,7 @@ import { Route as SizeGuideRouteImport } from './routes/size-guide'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedErpRouteImport } from './routes/_authenticated/erp'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminResetPasswordRouteImport } from './routes/admin.reset-password'
@@ -39,6 +40,13 @@ import { Route as AuthenticatedAdminCollectionsRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminPagesRouteImport } from './routes/_authenticated/admin.pages'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedErpIndexRouteImport } from './routes/_authenticated/erp.index'
+import { Route as AuthenticatedErpExpensesRouteImport } from './routes/_authenticated/erp.expenses'
+import { Route as AuthenticatedErpInventoryRouteImport } from './routes/_authenticated/erp.inventory'
+import { Route as AuthenticatedErpMonthCloseRouteImport } from './routes/_authenticated/erp.month-close'
+import { Route as AuthenticatedErpPurchasesRouteImport } from './routes/_authenticated/erp.purchases'
+import { Route as AuthenticatedErpReportsRouteImport } from './routes/_authenticated/erp.reports'
+import { Route as AuthenticatedErpSettingsRouteImport } from './routes/_authenticated/erp.settings'
 import { Route as AuthenticatedAdminBlogIndexRouteImport } from './routes/_authenticated/admin.blog.index'
 import { Route as AuthenticatedAdminBlogIdRouteImport } from './routes/_authenticated/admin.blog.$id'
 import { Route as AuthenticatedAdminBlogNewRouteImport } from './routes/_authenticated/admin.blog.new'
@@ -120,6 +128,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedErpRoute = AuthenticatedErpRouteImport.update({
+  id: '/erp',
+  path: '/erp',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AdminForgotPasswordRoute = AdminForgotPasswordRouteImport.update({
   id: '/admin/forgot-password',
   path: '/admin/forgot-password',
@@ -199,6 +212,46 @@ const AuthenticatedAdminSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedErpIndexRoute = AuthenticatedErpIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedErpRoute,
+} as any)
+const AuthenticatedErpExpensesRoute =
+  AuthenticatedErpExpensesRouteImport.update({
+    id: '/expenses',
+    path: '/expenses',
+    getParentRoute: () => AuthenticatedErpRoute,
+  } as any)
+const AuthenticatedErpInventoryRoute =
+  AuthenticatedErpInventoryRouteImport.update({
+    id: '/inventory',
+    path: '/inventory',
+    getParentRoute: () => AuthenticatedErpRoute,
+  } as any)
+const AuthenticatedErpMonthCloseRoute =
+  AuthenticatedErpMonthCloseRouteImport.update({
+    id: '/month-close',
+    path: '/month-close',
+    getParentRoute: () => AuthenticatedErpRoute,
+  } as any)
+const AuthenticatedErpPurchasesRoute =
+  AuthenticatedErpPurchasesRouteImport.update({
+    id: '/purchases',
+    path: '/purchases',
+    getParentRoute: () => AuthenticatedErpRoute,
+  } as any)
+const AuthenticatedErpReportsRoute = AuthenticatedErpReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedErpRoute,
+} as any)
+const AuthenticatedErpSettingsRoute =
+  AuthenticatedErpSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedErpRoute,
+  } as any)
 const AuthenticatedAdminBlogIndexRoute =
   AuthenticatedAdminBlogIndexRouteImport.update({
     id: '/blog/',
@@ -251,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/track-order': typeof TrackOrderRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/erp': typeof AuthenticatedErpRouteWithChildren
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
@@ -265,7 +319,14 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/erp/expenses': typeof AuthenticatedErpExpensesRoute
+  '/erp/inventory': typeof AuthenticatedErpInventoryRoute
+  '/erp/month-close': typeof AuthenticatedErpMonthCloseRoute
+  '/erp/purchases': typeof AuthenticatedErpPurchasesRoute
+  '/erp/reports': typeof AuthenticatedErpReportsRoute
+  '/erp/settings': typeof AuthenticatedErpSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/erp/': typeof AuthenticatedErpIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
   '/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
@@ -301,7 +362,14 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/erp/expenses': typeof AuthenticatedErpExpensesRoute
+  '/erp/inventory': typeof AuthenticatedErpInventoryRoute
+  '/erp/month-close': typeof AuthenticatedErpMonthCloseRoute
+  '/erp/purchases': typeof AuthenticatedErpPurchasesRoute
+  '/erp/reports': typeof AuthenticatedErpReportsRoute
+  '/erp/settings': typeof AuthenticatedErpSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/erp': typeof AuthenticatedErpIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
   '/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
@@ -326,6 +394,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/track-order': typeof TrackOrderRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/erp': typeof AuthenticatedErpRouteWithChildren
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
@@ -340,7 +409,14 @@ export interface FileRoutesById {
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/erp/expenses': typeof AuthenticatedErpExpensesRoute
+  '/_authenticated/erp/inventory': typeof AuthenticatedErpInventoryRoute
+  '/_authenticated/erp/month-close': typeof AuthenticatedErpMonthCloseRoute
+  '/_authenticated/erp/purchases': typeof AuthenticatedErpPurchasesRoute
+  '/_authenticated/erp/reports': typeof AuthenticatedErpReportsRoute
+  '/_authenticated/erp/settings': typeof AuthenticatedErpSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/erp/': typeof AuthenticatedErpIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
   '/_authenticated/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
@@ -365,6 +441,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/track-order'
     | '/admin'
+    | '/erp'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/reset-password'
@@ -379,7 +456,14 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/pages'
     | '/admin/settings'
+    | '/erp/expenses'
+    | '/erp/inventory'
+    | '/erp/month-close'
+    | '/erp/purchases'
+    | '/erp/reports'
+    | '/erp/settings'
     | '/admin/'
+    | '/erp/'
     | '/admin/blog/$id'
     | '/admin/blog/new'
     | '/admin/products/$id'
@@ -415,7 +499,14 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/pages'
     | '/admin/settings'
+    | '/erp/expenses'
+    | '/erp/inventory'
+    | '/erp/month-close'
+    | '/erp/purchases'
+    | '/erp/reports'
+    | '/erp/settings'
     | '/admin'
+    | '/erp'
     | '/admin/blog/$id'
     | '/admin/blog/new'
     | '/admin/products/$id'
@@ -439,6 +530,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/track-order'
     | '/_authenticated/admin'
+    | '/_authenticated/erp'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/reset-password'
@@ -453,7 +545,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/pages'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/erp/expenses'
+    | '/_authenticated/erp/inventory'
+    | '/_authenticated/erp/month-close'
+    | '/_authenticated/erp/purchases'
+    | '/_authenticated/erp/reports'
+    | '/_authenticated/erp/settings'
     | '/_authenticated/admin/'
+    | '/_authenticated/erp/'
     | '/_authenticated/admin/blog/$id'
     | '/_authenticated/admin/blog/new'
     | '/_authenticated/admin/products/$id'
@@ -594,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/erp': {
+      id: '/_authenticated/erp'
+      path: '/erp'
+      fullPath: '/erp'
+      preLoaderRoute: typeof AuthenticatedErpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/admin/forgot-password': {
       id: '/admin/forgot-password'
       path: '/admin/forgot-password'
@@ -699,6 +805,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/erp/': {
+      id: '/_authenticated/erp/'
+      path: '/'
+      fullPath: '/erp/'
+      preLoaderRoute: typeof AuthenticatedErpIndexRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/expenses': {
+      id: '/_authenticated/erp/expenses'
+      path: '/expenses'
+      fullPath: '/erp/expenses'
+      preLoaderRoute: typeof AuthenticatedErpExpensesRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/inventory': {
+      id: '/_authenticated/erp/inventory'
+      path: '/inventory'
+      fullPath: '/erp/inventory'
+      preLoaderRoute: typeof AuthenticatedErpInventoryRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/month-close': {
+      id: '/_authenticated/erp/month-close'
+      path: '/month-close'
+      fullPath: '/erp/month-close'
+      preLoaderRoute: typeof AuthenticatedErpMonthCloseRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/purchases': {
+      id: '/_authenticated/erp/purchases'
+      path: '/purchases'
+      fullPath: '/erp/purchases'
+      preLoaderRoute: typeof AuthenticatedErpPurchasesRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/reports': {
+      id: '/_authenticated/erp/reports'
+      path: '/reports'
+      fullPath: '/erp/reports'
+      preLoaderRoute: typeof AuthenticatedErpReportsRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
+    '/_authenticated/erp/settings': {
+      id: '/_authenticated/erp/settings'
+      path: '/settings'
+      fullPath: '/erp/settings'
+      preLoaderRoute: typeof AuthenticatedErpSettingsRouteImport
+      parentRoute: typeof AuthenticatedErpRoute
+    }
     '/_authenticated/admin/blog/': {
       id: '/_authenticated/admin/blog/'
       path: '/blog'
@@ -777,12 +932,37 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 const AuthenticatedAdminRouteWithChildren =
   AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
+interface AuthenticatedErpRouteChildren {
+  AuthenticatedErpExpensesRoute: typeof AuthenticatedErpExpensesRoute
+  AuthenticatedErpInventoryRoute: typeof AuthenticatedErpInventoryRoute
+  AuthenticatedErpMonthCloseRoute: typeof AuthenticatedErpMonthCloseRoute
+  AuthenticatedErpPurchasesRoute: typeof AuthenticatedErpPurchasesRoute
+  AuthenticatedErpReportsRoute: typeof AuthenticatedErpReportsRoute
+  AuthenticatedErpSettingsRoute: typeof AuthenticatedErpSettingsRoute
+  AuthenticatedErpIndexRoute: typeof AuthenticatedErpIndexRoute
+}
+
+const AuthenticatedErpRouteChildren: AuthenticatedErpRouteChildren = {
+  AuthenticatedErpExpensesRoute: AuthenticatedErpExpensesRoute,
+  AuthenticatedErpInventoryRoute: AuthenticatedErpInventoryRoute,
+  AuthenticatedErpMonthCloseRoute: AuthenticatedErpMonthCloseRoute,
+  AuthenticatedErpPurchasesRoute: AuthenticatedErpPurchasesRoute,
+  AuthenticatedErpReportsRoute: AuthenticatedErpReportsRoute,
+  AuthenticatedErpSettingsRoute: AuthenticatedErpSettingsRoute,
+  AuthenticatedErpIndexRoute: AuthenticatedErpIndexRoute,
+}
+
+const AuthenticatedErpRouteWithChildren =
+  AuthenticatedErpRoute._addFileChildren(AuthenticatedErpRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedErpRoute: typeof AuthenticatedErpRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedErpRoute: AuthenticatedErpRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =

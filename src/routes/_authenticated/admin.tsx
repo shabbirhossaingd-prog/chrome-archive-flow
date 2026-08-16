@@ -1,6 +1,8 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureAdmin } from "@/lib/admin.functions";
 import { AdminButton } from "@/components/admin/AdminUI";
@@ -9,10 +11,27 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
 });
 
-const NAV = [
+const DESKTOP_NAV = [
   { label: "DASHBOARD", to: "/admin" as const },
   { label: "ORDERS", to: "/admin/orders" as const },
   { label: "OBJECTS", to: "/admin/products" as const },
+  { label: "NEW OBJECT", to: "/admin/products/new" as const },
+  { label: "COLLECTIONS", to: "/admin/collections" as const },
+  { label: "ARCHIVE", to: "/admin/archive" as const },
+  { label: "PAGES", to: "/admin/pages" as const },
+  { label: "BLOG", to: "/admin/blog" as const },
+  { label: "SETTINGS", to: "/admin/settings" as const },
+  { label: "ERP", to: "/erp" as const },
+];
+
+const MOBILE_MAIN = [
+  { label: "DASHBOARD", to: "/admin" as const },
+  { label: "ORDERS", to: "/admin/orders" as const },
+  { label: "OBJECTS", to: "/admin/products" as const },
+  { label: "ERP", to: "/erp" as const },
+];
+
+const MOBILE_MORE = [
   { label: "NEW OBJECT", to: "/admin/products/new" as const },
   { label: "COLLECTIONS", to: "/admin/collections" as const },
   { label: "ARCHIVE", to: "/admin/archive" as const },
@@ -25,6 +44,7 @@ function AdminLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const check = useServerFn(ensureAdmin);
+  const [mobileMore, setMobileMore] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-access"],
@@ -44,7 +64,10 @@ function AdminLayout() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
         <div className="glass-panel rounded-[24px] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-center gap-4">
-            <Link to="/" className="font-display text-sm tracking-[0.3em] text-foreground">
+            <Link
+              to="/"
+              className="font-display text-sm tracking-[0.3em] text-foreground"
+            >
               ZZERKOFF
             </Link>
             <span className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
@@ -56,7 +79,7 @@ function AdminLayout() {
                 href="/"
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-xl border border-border/60 px-4 py-3 text-[9px] uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-foreground"
+                className="hidden rounded-xl border border-border/60 px-4 py-3 text-[9px] uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
               >
                 View website
               </a>
@@ -64,12 +87,12 @@ function AdminLayout() {
             </div>
           </div>
 
-          <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
-            {NAV.map((n) => (
+          <nav className="mt-4 hidden flex-wrap gap-2 sm:flex">
+            {DESKTOP_NAV.map((n) => (
               <Link
                 key={n.label}
                 to={n.to}
-                activeOptions={{ exact: n.to === "/admin" }}
+                activeOptions={{ exact: n.to === "/admin" || n.to === "/erp" }}
                 activeProps={{
                   className:
                     "border-chrome/60 bg-white/[0.06] text-foreground",
@@ -80,6 +103,59 @@ function AdminLayout() {
               </Link>
             ))}
           </nav>
+
+          <div className="mt-4 sm:hidden">
+            <nav className="flex gap-2 overflow-x-auto pb-1">
+              {MOBILE_MAIN.map((n) => (
+                <Link
+                  key={n.label}
+                  to={n.to}
+                  activeOptions={{ exact: n.to === "/admin" || n.to === "/erp" }}
+                  activeProps={{
+                    className:
+                      "border-chrome/60 bg-white/[0.06] text-foreground",
+                  }}
+                  className="shrink-0 rounded-xl border border-border/50 px-3 py-2.5 text-[8px] uppercase tracking-[0.22em] text-muted-foreground"
+                >
+                  {n.label}
+                </Link>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setMobileMore((value) => !value)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border/50 px-3 py-2.5 text-[8px] uppercase tracking-[0.22em] text-muted-foreground"
+              >
+                More
+                <ChevronDown
+                  className={`size-3 transition-transform ${mobileMore ? "rotate-180" : ""}`}
+                />
+              </button>
+            </nav>
+
+            {mobileMore && (
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-border/45 bg-black/30 p-3">
+                {MOBILE_MORE.map((n) => (
+                  <Link
+                    key={n.label}
+                    to={n.to}
+                    onClick={() => setMobileMore(false)}
+                    className="rounded-xl border border-border/45 px-3 py-3 text-center text-[8px] uppercase tracking-[0.2em] text-muted-foreground"
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="col-span-2 rounded-xl border border-border/45 px-3 py-3 text-center text-[8px] uppercase tracking-[0.2em] text-muted-foreground"
+                >
+                  View website
+                </a>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-8 sm:mt-10">
