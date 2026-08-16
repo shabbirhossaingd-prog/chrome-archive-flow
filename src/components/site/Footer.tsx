@@ -9,6 +9,13 @@ const LINKS = [
   { label: "ARCHIVE", to: "/archive" as const },
   { label: "ABOUT", to: "/about" as const },
   { label: "CONTACT", to: "/contact" as const },
+  { label: "TRACK ORDER", to: "/track-order" as const },
+  { label: "SHIPPING", to: "/shipping" as const },
+  { label: "RETURNS", to: "/returns" as const },
+  { label: "SIZE GUIDE", to: "/size-guide" as const },
+  { label: "FAQ", to: "/faq" as const },
+  { label: "PRIVACY", to: "/privacy" as const },
+  { label: "TERMS", to: "/terms" as const },
 ];
 
 export function Footer() {

@@ -29,13 +29,21 @@ export const Route = createFileRoute("/product/$slug")({
   head: ({ params }) => {
     const title = `${pretty(params.slug)} — ZZERKOFF`;
     const description = `${pretty(params.slug)} — a ZZERKOFF object for the afterdark. Unisex chrome accessories.`;
+    const canonical = `https://zzerkoff.vercel.app/product/${params.slug}`;
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: canonical },
+        { property: "og:image", content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
       ],
+      links: [{ rel: "canonical", href: canonical }],
     };
   },
   component: ProductPage,
@@ -82,6 +90,30 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
   const soldOut = isSoldOut(product);
+  const productUrl = `https://zzerkoff.vercel.app/product/${product.slug}`;
+  const schemaImage =
+    images[0] && !images[0].startsWith("storage:")
+      ? images[0].startsWith("http")
+        ? images[0]
+        : `https://zzerkoff.vercel.app${images[0]}`
+      : "https://zzerkoff.vercel.app/images/zzerkoff-logo.png";
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    sku: product.product_code,
+    description: product.short_description || product.full_description,
+    image: [schemaImage],
+    url: productUrl,
+    brand: { "@type": "Brand", name: "ZZERKOFF" },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: site.currencyCode,
+      price: Number(product.price),
+      availability: soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      url: productUrl,
+    },
+  };
 
   const delivery =
     product.delivery ||
@@ -132,6 +164,12 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productSchema).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="relative mt-10 grid gap-12 pb-24 lg:grid-cols-[58fr_42fr] lg:gap-16">
         <LiquidChrome className="-left-40 top-20 h-[38rem] w-[38rem]" opacity={0.16} />
 

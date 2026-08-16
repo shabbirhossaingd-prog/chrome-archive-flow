@@ -11,24 +11,26 @@ import { useCategories, useProducts, formatPrice } from "@/lib/products";
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { CategoryCard } from "@/components/site/CategoryCard";
 import { SmartImage } from "@/components/site/SmartImage";
+import { useCurrentCollection } from "@/lib/cms";
 import campaign1 from "@/assets/campaign-1.jpg";
 import campaign2 from "@/assets/campaign-2.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZzerkOff" },
+      { title: "ZZERKOFF — Objects for the Afterdark" },
       {
         name: "description",
         content:
-          "Drop 001: chrome rings, chains and bracelets. A unisex alternative accessories archive from Dhaka.",
+          "Shop the current ZZERKOFF collection: unisex chrome rings, chains, bracelets and alternative accessories.",
       },
       { property: "og:title", content: "ZZERKOFF — Objects for the Afterdark" },
       {
         property: "og:description",
-        content: "Drop 001: chrome rings, chains and bracelets. Unisex. Underground. Afterdark.",
+        content: "Current ZZERKOFF objects. Unisex chrome accessories. Underground. Afterdark.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://zzerkoff.vercel.app/" }],
   }),
   component: Index,
 });
@@ -42,9 +44,25 @@ function SectionLabel({ children }: { children: string }) {
 function Index() {
   const { data: products = [], isLoading } = useProducts();
   const { data: categories = [] } = useCategories();
-  const newDrop = products.filter((p) => p.new_collection);
-  const featuredList = products.filter((p) => p.featured);
-  const featured = featuredList[0] ?? products[0];
+  const { data: currentCollection } = useCurrentCollection();
+
+  const currentProducts = currentCollection
+    ? products.filter((p) => p.collection_id === currentCollection.id)
+    : products.filter((p) => p.new_collection);
+
+  const newDrop = currentProducts.length ? currentProducts : products.filter((p) => p.new_collection);
+  const dropCode =
+    currentCollection?.collection_code ||
+    (currentCollection?.drop_number
+      ? `DROP ${String(currentCollection.drop_number).padStart(3, "0")}`
+      : "CURRENT DROP");
+  const dropTagline = currentCollection?.tagline || "Objects selected for the afterdark.";
+  const objectTypes =
+    Array.from(new Set(newDrop.map((p) => p.category.replace(/-/g, " ").toUpperCase()))).join(" / ") ||
+    "OBJECTS";
+
+  const featuredList = newDrop.filter((p) => p.featured);
+  const featured = featuredList[0] ?? newDrop[0] ?? products[0];
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background">
@@ -87,7 +105,7 @@ function Index() {
             to="/collection"
             className="group inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground backdrop-blur-md transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
           >
-            Enter Drop 001
+            Enter {dropCode}
             <span className="transition-transform duration-700 group-hover:translate-x-1">→</span>
           </Link>
         </Reveal>
@@ -103,14 +121,14 @@ function Index() {
             <div>
               <SectionLabel>ZZ / COLLECTION</SectionLabel>
               <h2 className="mt-5 font-display text-3xl tracking-[0.2em] text-foreground sm:text-5xl">
-                DROP 001
+                {dropCode}
               </h2>
               <p className="mt-4 font-editorial text-lg italic text-muted-foreground">
-                Objects selected for the afterdark.
+                {dropTagline}
               </p>
             </div>
             <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-              Rings / Chains / Bracelets
+              {objectTypes}
             </p>
           </Reveal>
 
@@ -136,7 +154,7 @@ function Index() {
           </Reveal>
 
           <Reveal delay={150}>
-            <SectionLabel>DROP 001 / 01</SectionLabel>
+            <SectionLabel>{`${dropCode} / 01`}</SectionLabel>
             <h2 className="mt-5 font-display text-2xl tracking-[0.18em] text-foreground sm:text-4xl">
               {featured?.name ?? "—"}
             </h2>
@@ -175,11 +193,6 @@ function Index() {
               </Reveal>
             ))}
           </div>
-          <Reveal className="mt-10">
-            <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
-              Objects are managed from the ZZERKOFF studio dashboard.
-            </p>
-          </Reveal>
         </div>
       </section>
 

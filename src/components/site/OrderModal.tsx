@@ -44,6 +44,7 @@ export function OrderModal({
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "bkash" | "nagad">("cod");
   const [transactionId, setTransactionId] = useState("");
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") return;
@@ -71,6 +72,7 @@ export function OrderModal({
   const close = () => {
     setError("");
     setOrderNumber("");
+    setCopied(false);
     onClose();
   };
 
@@ -175,7 +177,7 @@ export function OrderModal({
           </button>
 
           {orderNumber ? (
-            <div className="py-10 text-center">
+            <div className="py-8 text-center">
               <div className="mx-auto grid size-14 place-items-center rounded-full border border-chrome/60 bg-white/[0.04]">
                 <Check className="size-5 text-foreground" />
               </div>
@@ -185,18 +187,54 @@ export function OrderModal({
               <h2 className="mt-4 font-display text-xl tracking-[0.2em] text-foreground sm:text-2xl">
                 ORDER RECEIVED
               </h2>
-              <p className="mt-5 text-[10px] uppercase tracking-[0.35em] text-chrome">
-                {orderNumber}
-              </p>
+
+              <div className="mx-auto mt-6 max-w-sm rounded-[20px] border border-border/60 bg-white/[0.02] p-4 text-left">
+                <span className="text-[8px] uppercase tracking-[0.32em] text-muted-foreground">Order ID</span>
+                <p className="mt-2 text-[11px] uppercase tracking-[0.25em] text-chrome">{orderNumber}</p>
+                <div className="mt-4 flex items-end justify-between gap-4 border-t border-border/40 pt-4">
+                  <div>
+                    <p className="font-display text-xs tracking-[0.12em] text-foreground">{productName}</p>
+                    <p className="mt-2 text-[8px] uppercase tracking-[0.25em] text-muted-foreground">QTY {quantity} · {paymentMethod}</p>
+                  </div>
+                  <p className="text-xs tracking-[0.14em] text-foreground">
+                    {currencySymbol}{total.toLocaleString("en-US")}
+                  </p>
+                </div>
+              </div>
+
               <p className="mx-auto mt-6 max-w-sm text-xs leading-relaxed tracking-[0.08em] text-muted-foreground">
-                Your order is now in our studio. We will contact you on the phone number you provided to confirm delivery.
+                Keep your order ID. We will contact the phone number you provided to confirm delivery.
               </p>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(orderNumber);
+                      setCopied(true);
+                    } catch {
+                      setCopied(false);
+                    }
+                  }}
+                  className="rounded-full border border-border/70 px-6 py-5 text-[9px] uppercase tracking-[0.32em] text-muted-foreground transition-colors hover:border-chrome/60 hover:text-foreground"
+                >
+                  {copied ? "Copied" : "Copy order ID"}
+                </button>
+                <a
+                  href="/track-order"
+                  className="rounded-full border border-chrome/50 bg-white/[0.04] px-6 py-5 text-[9px] uppercase tracking-[0.32em] text-foreground transition-colors hover:bg-white/[0.08]"
+                >
+                  Track order
+                </a>
+              </div>
+
               <button
                 type="button"
                 onClick={close}
-                className="mt-8 w-full rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.4em] text-foreground transition-colors hover:bg-white/[0.08]"
+                className="mt-3 w-full rounded-full border border-border/50 px-8 py-5 text-[9px] uppercase tracking-[0.34em] text-muted-foreground transition-colors hover:text-foreground"
               >
-                Continue
+                Continue shopping
               </button>
             </div>
           ) : (

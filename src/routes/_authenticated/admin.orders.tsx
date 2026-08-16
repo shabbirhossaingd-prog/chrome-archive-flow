@@ -41,6 +41,11 @@ type Order = {
   payment_method: "cod" | "bkash" | "nagad";
   payment_status: "unpaid" | "pending_verification" | "paid" | "rejected" | "refunded";
   transaction_id: string | null;
+  confirmed_at: string | null;
+  processing_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -204,6 +209,14 @@ function AdminOrders() {
             const selected = [order.selected_size, order.selected_finish]
               .filter(Boolean)
               .join(" / ");
+            const timeline = [
+              ["PLACED", order.created_at],
+              ["CONFIRMED", order.confirmed_at],
+              ["PROCESSING", order.processing_at],
+              ["SHIPPED", order.shipped_at],
+              ["DELIVERED", order.delivered_at],
+              ["CANCELLED", order.cancelled_at],
+            ].filter(([, time]) => Boolean(time));
 
             return (
               <article key={order.id} className="glass-panel rounded-[24px] p-5 sm:p-6">
@@ -304,13 +317,45 @@ function AdminOrders() {
                     <span className="rounded-xl border border-chrome/40 px-3 py-2 text-[8px] uppercase tracking-[0.22em] text-chrome">{order.payment_status}</span>
                     {order.transaction_id && <span className="text-[9px] tracking-[0.12em] text-muted-foreground">TrxID: {order.transaction_id}</span>}
                   </div>
-                  {order.payment_method !== "cod" && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button" onClick={() => updatePayment.mutate({ id: order.id, payment_status: "paid" })} disabled={updatePayment.isPending} className="rounded-xl border border-chrome/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-foreground">Mark paid</button>
-                      <button type="button" onClick={() => updatePayment.mutate({ id: order.id, payment_status: "rejected" })} disabled={updatePayment.isPending} className="rounded-xl border border-border/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-muted-foreground">Reject payment</button>
-                    </div>
-                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {order.payment_status !== "paid" && (
+                      <button
+                        type="button"
+                        onClick={() => updatePayment.mutate({ id: order.id, payment_status: "paid" })}
+                        disabled={updatePayment.isPending}
+                        className="rounded-xl border border-chrome/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-foreground"
+                      >
+                        Mark paid
+                      </button>
+                    )}
+                    {order.payment_method !== "cod" && order.payment_status !== "rejected" && (
+                      <button
+                        type="button"
+                        onClick={() => updatePayment.mutate({ id: order.id, payment_status: "rejected" })}
+                        disabled={updatePayment.isPending}
+                        className="rounded-xl border border-border/60 px-3 py-3 text-[8px] uppercase tracking-[0.22em] text-muted-foreground"
+                      >
+                        Reject payment
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {timeline.length > 0 && (
+                  <div className="mt-5 border-t border-border/50 pt-5">
+                    <span className="text-[8px] uppercase tracking-[0.32em] text-muted-foreground">Order timeline</span>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {timeline.map(([label, time]) => (
+                        <div key={String(label)} className="rounded-xl border border-border/40 px-3 py-3">
+                          <span className="block text-[8px] uppercase tracking-[0.22em] text-foreground">{label}</span>
+                          <span className="mt-2 block text-[9px] text-muted-foreground">
+                            {new Date(String(time)).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {order.customer_note && (
                   <div className="mt-5 border-t border-border/50 pt-5">
