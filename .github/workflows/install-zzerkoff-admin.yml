@@ -1,4 +1,4 @@
-/name: ZZERKOFF Admin Installer
+name: ZZERKOFF Admin Installer
 
 on:
   workflow_dispatch:
