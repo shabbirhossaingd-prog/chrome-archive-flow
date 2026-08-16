@@ -50,6 +50,57 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          content: string
+          created_at: string
+          excerpt: string
+          featured: boolean
+          featured_image: string
+          id: string
+          og_image: string
+          published_at: string | null
+          seo_description: string
+          seo_title: string
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          excerpt?: string
+          featured?: boolean
+          featured_image?: string
+          id?: string
+          og_image?: string
+          published_at?: string | null
+          seo_description?: string
+          seo_title?: string
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          excerpt?: string
+          featured?: boolean
+          featured_image?: string
+          id?: string
+          og_image?: string
+          published_at?: string | null
+          seo_description?: string
+          seo_title?: string
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           active: boolean
@@ -109,20 +160,144 @@ export type Database = {
           },
         ]
       }
+      collections: {
+        Row: {
+          archived: boolean
+          button_href: string
+          button_label: string
+          campaign_images: string[]
+          collection_code: string
+          created_at: string
+          description: string
+          drop_number: number
+          editorial_images: string[]
+          heading: string
+          hero_image: string
+          id: string
+          is_current: boolean
+          label: string
+          marquee_text: string
+          name: string
+          published: boolean
+          slug: string
+          sort_order: number
+          tagline: string
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          archived?: boolean
+          button_href?: string
+          button_label?: string
+          campaign_images?: string[]
+          collection_code?: string
+          created_at?: string
+          description?: string
+          drop_number?: number
+          editorial_images?: string[]
+          heading?: string
+          hero_image?: string
+          id?: string
+          is_current?: boolean
+          label?: string
+          marquee_text?: string
+          name: string
+          published?: boolean
+          slug: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+          year?: string
+        }
+        Update: {
+          archived?: boolean
+          button_href?: string
+          button_label?: string
+          campaign_images?: string[]
+          collection_code?: string
+          created_at?: string
+          description?: string
+          drop_number?: number
+          editorial_images?: string[]
+          heading?: string
+          hero_image?: string
+          id?: string
+          is_current?: boolean
+          label?: string
+          marquee_text?: string
+          name?: string
+          published?: boolean
+          slug?: string
+          sort_order?: number
+          tagline?: string
+          updated_at?: string
+          year?: string
+        }
+        Relationships: []
+      }
+      pages: {
+        Row: {
+          body: string
+          content_json: Json
+          created_at: string
+          hero_image: string
+          id: string
+          label: string
+          page_key: string
+          seo_description: string
+          seo_title: string
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          content_json?: Json
+          created_at?: string
+          hero_image?: string
+          id?: string
+          label?: string
+          page_key: string
+          seo_description?: string
+          seo_title?: string
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          content_json?: Json
+          created_at?: string
+          hero_image?: string
+          id?: string
+          label?: string
+          page_key?: string
+          seo_description?: string
+          seo_title?: string
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           archived: boolean
           care: string
           category: string
+          collection_id: string | null
           collection_name: string
           created_at: string
           delivery: string
+          details_content: string
           featured: boolean
           finish: string[]
+          fit_gender: string
           full_description: string
           gallery_images: string[]
           id: string
           material: string
+          material_content: string
           name: string
           new_collection: boolean
           old_price: number | null
@@ -131,12 +306,16 @@ export type Database = {
           product_code: string
           published: boolean
           quantity_available: number
+          related_product_ids: string[]
           short_description: string
+          size_description: string
           size_guide: string
+          size_type: string
           sizes: string[]
           slug: string
           sort_order: number
           stock_status: string
+          tags: string[]
           updated_at: string
           whatsapp_available: boolean
         }
@@ -144,15 +323,19 @@ export type Database = {
           archived?: boolean
           care?: string
           category: string
+          collection_id?: string | null
           collection_name?: string
           created_at?: string
           delivery?: string
+          details_content?: string
           featured?: boolean
           finish?: string[]
+          fit_gender?: string
           full_description?: string
           gallery_images?: string[]
           id?: string
           material?: string
+          material_content?: string
           name: string
           new_collection?: boolean
           old_price?: number | null
@@ -161,12 +344,16 @@ export type Database = {
           product_code: string
           published?: boolean
           quantity_available?: number
+          related_product_ids?: string[]
           short_description?: string
+          size_description?: string
           size_guide?: string
+          size_type?: string
           sizes?: string[]
           slug: string
           sort_order?: number
           stock_status?: string
+          tags?: string[]
           updated_at?: string
           whatsapp_available?: boolean
         }
@@ -174,15 +361,19 @@ export type Database = {
           archived?: boolean
           care?: string
           category?: string
+          collection_id?: string | null
           collection_name?: string
           created_at?: string
           delivery?: string
+          details_content?: string
           featured?: boolean
           finish?: string[]
+          fit_gender?: string
           full_description?: string
           gallery_images?: string[]
           id?: string
           material?: string
+          material_content?: string
           name?: string
           new_collection?: boolean
           old_price?: number | null
@@ -191,12 +382,16 @@ export type Database = {
           product_code?: string
           published?: boolean
           quantity_available?: number
+          related_product_ids?: string[]
           short_description?: string
+          size_description?: string
           size_guide?: string
+          size_type?: string
           sizes?: string[]
           slug?: string
           sort_order?: number
           stock_status?: string
+          tags?: string[]
           updated_at?: string
           whatsapp_available?: boolean
         }
@@ -208,6 +403,13 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["slug"]
           },
+          {
+            foreignKeyName: "products_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
         ]
       }
       site_settings: {
@@ -216,6 +418,9 @@ export type Database = {
           created_at: string
           currency_code: string
           currency_symbol: string
+          default_care: string
+          default_delivery: string
+          default_size_guide: string
           email: string
           id: string
           instagram_url: string
@@ -228,6 +433,9 @@ export type Database = {
           created_at?: string
           currency_code?: string
           currency_symbol?: string
+          default_care?: string
+          default_delivery?: string
+          default_size_guide?: string
           email?: string
           id?: string
           instagram_url?: string
@@ -240,6 +448,9 @@ export type Database = {
           created_at?: string
           currency_code?: string
           currency_symbol?: string
+          default_care?: string
+          default_delivery?: string
+          default_size_guide?: string
           email?: string
           id?: string
           instagram_url?: string
