@@ -1,4 +1,4 @@
-const WORDS = [
+const DEFAULT_WORDS = [
   "ZZERKOFF",
   "CHROME",
   "AFTERDARK",
@@ -8,8 +8,16 @@ const WORDS = [
   "DROP 001",
 ];
 
-export function Marquee() {
-  const line = [...WORDS, ...WORDS];
+export function Marquee({ text, words }: { text?: string; words?: string[] } = {}) {
+  const parsed = text
+    ? text
+        .split(/[\/|•—]+/)
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : [];
+  const source = words?.length ? words : parsed.length ? parsed : DEFAULT_WORDS;
+  const line = [...source, ...source];
+
   return (
     <div className="relative overflow-hidden border-y border-border/60 py-5">
       <div className="flex w-max animate-marquee">
