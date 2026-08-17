@@ -144,8 +144,8 @@ export function useAdminProducts() {
   return useQuery(adminProductsQuery);
 }
 
-export function useCategories() {
-  return useQuery(categoriesQuery);
+export function useCategories(enabled = true) {
+  return useQuery({ ...categoriesQuery, enabled });
 }
 
 export function useAllCategories() {

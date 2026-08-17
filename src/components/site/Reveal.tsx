@@ -30,17 +30,21 @@ export function Reveal({
   children,
   className,
   delay = 0,
+  immediate = false,
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
+  immediate?: boolean;
   as?: "div" | "section" | "span" | "li";
 }) {
   const ref = useRef<RevealElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(immediate);
 
   useEffect(() => {
+    if (immediate) return;
+
     const el = ref.current;
     if (!el) return;
 
@@ -65,7 +69,7 @@ export function Reveal({
       observer.unobserve(el);
       revealCallbacks.delete(el);
     };
-  }, []);
+  }, [immediate]);
 
   const Component = Tag as "div";
 

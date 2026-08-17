@@ -43,3 +43,11 @@
     transition-delay: 0ms !important;
   }
 }
+
+/* V2: postpone far below-fold layout/paint work without changing the final visual. */
+@media (max-width: 767px) {
+  .perf-below-fold {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 900px;
+  }
+}

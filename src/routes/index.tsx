@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -30,7 +31,16 @@ export const Route = createFileRoute("/")({
         content: "Current ZZERKOFF objects. Unisex chrome accessories. Underground. Afterdark.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://zzerkoff.vercel.app/" }],
+    links: [
+      { rel: "canonical", href: "https://zzerkoff.vercel.app/" },
+      {
+        rel: "preload",
+        href: "/images/zzerkoff-logo.webp",
+        as: "image",
+        type: "image/webp",
+        fetchPriority: "high",
+      },
+    ],
   }),
   component: Index,
 });
@@ -42,8 +52,29 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 function Index() {
-  const { data: products = [], isLoading } = useProducts();
-  const { data: categories = [] } = useCategories();
+  const [catalogReady, setCatalogReady] = useState(false);
+
+  useEffect(() => {
+    let finished = false;
+    const activate = () => {
+      if (finished) return;
+      finished = true;
+      setCatalogReady(true);
+    };
+
+    const timer = window.setTimeout(activate, 850);
+    window.addEventListener("scroll", activate, { passive: true, once: true });
+    window.addEventListener("pointerdown", activate, { passive: true, once: true });
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", activate);
+      window.removeEventListener("pointerdown", activate);
+    };
+  }, []);
+
+  const { data: products = [], isLoading } = useProducts(catalogReady);
+  const { data: categories = [] } = useCategories(catalogReady);
   const { data: currentCollection } = useCurrentCollection();
 
   const currentProducts = currentCollection
@@ -78,7 +109,7 @@ function Index() {
         <LiquidChrome className="-right-32 bottom-0 h-[30rem] w-[30rem]" opacity={0.12} flip />
         <div className="grain-overlay" />
 
-        <Reveal>
+        <Reveal immediate>
           <img
             src="/images/zzerkoff-logo.webp"
             alt="ZZERKOFF liquid chrome ZZ monogram"
@@ -116,7 +147,7 @@ function Index() {
       <Marquee />
 
       {/* DROP 001 */}
-      <section id="drop" className="relative isolate scroll-mt-28 px-5 py-28 sm:px-8 sm:py-36">
+      <section id="drop" className="perf-below-fold relative isolate scroll-mt-28 px-5 py-28 sm:px-8 sm:py-36">
         <LiquidChrome className="-left-48 top-24 h-[34rem] w-[34rem]" opacity={0.14} />
         <div className="mx-auto max-w-7xl">
           <Reveal className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -135,13 +166,17 @@ function Index() {
           </Reveal>
 
           <div className="mt-14">
-            <ProductGrid products={newDrop} loading={isLoading} empty="New objects arriving soon." />
+            <ProductGrid
+              products={newDrop}
+              loading={!catalogReady || isLoading}
+              empty="New objects arriving soon."
+            />
           </div>
         </div>
       </section>
 
       {/* FEATURED */}
-      <section className="relative isolate overflow-hidden px-5 py-24 sm:px-8">
+      <section className="perf-below-fold relative isolate overflow-hidden px-5 py-24 sm:px-8">
         <LiquidChrome className="-right-40 top-0 h-[42rem] w-[42rem]" opacity={0.2} flip />
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <Reveal className="glass-panel relative overflow-hidden rounded-[28px]">
@@ -179,7 +214,7 @@ function Index() {
       </section>
 
       {/* SHOP BY OBJECT */}
-      <section className="relative px-5 py-24 sm:px-8">
+      <section className="perf-below-fold relative px-5 py-24 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <Reveal>
             <SectionLabel>SHOP BY OBJECT</SectionLabel>
@@ -199,7 +234,7 @@ function Index() {
       </section>
 
       {/* STATEMENT */}
-      <section className="relative isolate overflow-hidden px-5 py-36 sm:px-8 sm:py-48">
+      <section className="perf-below-fold relative isolate overflow-hidden px-5 py-36 sm:px-8 sm:py-48">
         <LiquidChrome
           className="left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2"
           opacity={0.16}
@@ -222,7 +257,7 @@ function Index() {
       </section>
 
       {/* ARCHIVE */}
-      <section id="archive" className="relative scroll-mt-28 px-5 py-24 sm:px-8">
+      <section id="archive" className="perf-below-fold relative scroll-mt-28 px-5 py-24 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <Reveal className="flex items-end justify-between gap-6">
             <h2 className="font-display text-3xl tracking-[0.2em] text-foreground sm:text-5xl">
@@ -279,7 +314,7 @@ function Index() {
       </section>
 
       {/* ABOUT */}
-      <section id="about" className="relative isolate scroll-mt-28 px-5 py-32 sm:px-8">
+      <section id="about" className="perf-below-fold relative isolate scroll-mt-28 px-5 py-32 sm:px-8">
         <LiquidChrome className="-left-32 bottom-0 h-[30rem] w-[30rem]" opacity={0.12} />
         <div className="mx-auto max-w-3xl">
           <Reveal>
