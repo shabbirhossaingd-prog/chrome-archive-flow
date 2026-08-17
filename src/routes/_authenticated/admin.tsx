@@ -1,4 +1,9 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -20,6 +25,7 @@ const DESKTOP_NAV = [
   { label: "ARCHIVE", to: "/admin/archive" as const },
   { label: "PAGES", to: "/admin/pages" as const },
   { label: "BLOG", to: "/admin/blog" as const },
+  { label: "COMMERCE", to: "/admin/commerce" as const },
   { label: "SETTINGS", to: "/admin/settings" as const },
   { label: "ERP", to: "/erp" as const },
 ];
@@ -37,6 +43,7 @@ const MOBILE_MORE = [
   { label: "ARCHIVE", to: "/admin/archive" as const },
   { label: "PAGES", to: "/admin/pages" as const },
   { label: "BLOG", to: "/admin/blog" as const },
+  { label: "COMMERCE", to: "/admin/commerce" as const },
   { label: "SETTINGS", to: "/admin/settings" as const },
 ];
 
@@ -61,6 +68,7 @@ function AdminLayout() {
   return (
     <div className="relative min-h-screen bg-background">
       <div className="grain-overlay" />
+
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
         <div className="glass-panel rounded-[24px] px-4 py-4 sm:px-5">
           <div className="flex flex-wrap items-center gap-4">
@@ -88,36 +96,40 @@ function AdminLayout() {
           </div>
 
           <nav className="mt-4 hidden flex-wrap gap-2 sm:flex">
-            {DESKTOP_NAV.map((n) => (
+            {DESKTOP_NAV.map((item) => (
               <Link
-                key={n.label}
-                to={n.to}
-                activeOptions={{ exact: n.to === "/admin" || n.to === "/erp" }}
+                key={item.label}
+                to={item.to}
+                activeOptions={{
+                  exact: item.to === "/admin" || item.to === "/erp",
+                }}
                 activeProps={{
                   className:
                     "border-chrome/60 bg-white/[0.06] text-foreground",
                 }}
                 className="shrink-0 rounded-xl border border-border/50 px-3 py-2 text-[8px] uppercase tracking-[0.28em] text-muted-foreground transition-colors hover:text-foreground"
               >
-                {n.label}
+                {item.label}
               </Link>
             ))}
           </nav>
 
           <div className="mt-4 sm:hidden">
             <nav className="flex gap-2 overflow-x-auto pb-1">
-              {MOBILE_MAIN.map((n) => (
+              {MOBILE_MAIN.map((item) => (
                 <Link
-                  key={n.label}
-                  to={n.to}
-                  activeOptions={{ exact: n.to === "/admin" || n.to === "/erp" }}
+                  key={item.label}
+                  to={item.to}
+                  activeOptions={{
+                    exact: item.to === "/admin" || item.to === "/erp",
+                  }}
                   activeProps={{
                     className:
                       "border-chrome/60 bg-white/[0.06] text-foreground",
                   }}
                   className="shrink-0 rounded-xl border border-border/50 px-3 py-2.5 text-[8px] uppercase tracking-[0.22em] text-muted-foreground"
                 >
-                  {n.label}
+                  {item.label}
                 </Link>
               ))}
 
@@ -128,21 +140,23 @@ function AdminLayout() {
               >
                 More
                 <ChevronDown
-                  className={`size-3 transition-transform ${mobileMore ? "rotate-180" : ""}`}
+                  className={`size-3 transition-transform ${
+                    mobileMore ? "rotate-180" : ""
+                  }`}
                 />
               </button>
             </nav>
 
             {mobileMore && (
               <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl border border-border/45 bg-black/30 p-3">
-                {MOBILE_MORE.map((n) => (
+                {MOBILE_MORE.map((item) => (
                   <Link
-                    key={n.label}
-                    to={n.to}
+                    key={item.label}
+                    to={item.to}
                     onClick={() => setMobileMore(false)}
                     className="rounded-xl border border-border/45 px-3 py-3 text-center text-[8px] uppercase tracking-[0.2em] text-muted-foreground"
                   >
-                    {n.label}
+                    {item.label}
                   </Link>
                 ))}
                 <a

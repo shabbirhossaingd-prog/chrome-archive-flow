@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { PageShell } from "@/components/site/PageShell";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { SmartImage } from "@/components/site/SmartImage";
 import { Reveal } from "@/components/site/Reveal";
 import { ProductCard } from "@/components/site/ProductCard";
+import { WishlistButton } from "@/components/site/WishlistButton";
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +23,7 @@ import {
 } from "@/lib/products";
 import { SITE, restockMessage } from "@/lib/site-config";
 import { OrderModal } from "@/components/site/OrderModal";
+import { addCartItem, productCartKey } from "@/lib/commerce";
 import { useSite } from "@/lib/settings";
 
 const pretty = (slug: string) => slug.replace(/-/g, " ").toUpperCase();
@@ -38,7 +41,10 @@ export const Route = createFileRoute("/product/$slug")({
         { property: "og:description", content: description },
         { property: "og:type", content: "product" },
         { property: "og:url", content: canonical },
-        { property: "og:image", content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png" },
+        {
+          property: "og:image",
+          content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png",
+        },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
@@ -52,7 +58,7 @@ export const Route = createFileRoute("/product/$slug")({
 function ProductPage() {
   const { slug } = Route.useParams();
   const { data: products = [], isLoading } = useAllPublishedProducts();
-  const product = products.find((p) => p.slug === slug);
+  const product = products.find((row) => row.slug === slug);
 
   return (
     <PageShell>
@@ -80,16 +86,54 @@ function ProductPage() {
   );
 }
 
-function ProductDetail({ product, products }: { product: Product; products: Product[] }) {
+function ProductDetail({
+  product,
+  products,
+}: {
+  product: Product;
+  products: Product[];
+}) {
   const site = useSite();
+  const productAny = product as any;
   const images = productImages(product);
   const sizes = product.sizes ?? [];
   const finishes = product.finish ?? [];
-  const [size, setSize] = useState<string>(sizes[0] ?? "");
-  const [finish, setFinish] = useState<string>(finishes[0] ?? "");
+  const colors = (productAny.colors ?? []) as string[];
+  const colorStock = (productAny.color_stock ?? {}) as Record<string, number>;
+
+  const firstAvailableColor =
+    colors.find((color) => Number(colorStock[color] ?? 0) > 0) ??
+    colors[0] ??
+    "";
+
+  const [size, setSize] = useState(sizes[0] ?? "");
+  const [finish, setFinish] = useState(finishes[0] ?? "");
+  const [color, setColor] = useState(firstAvailableColor);
   const [qty, setQty] = useState(1);
   const [orderOpen, setOrderOpen] = useState(false);
-  const soldOut = isSoldOut(product);
+
+  useEffect(() => {
+    setSize(sizes[0] ?? "");
+    setFinish(finishes[0] ?? "");
+    setColor(firstAvailableColor);
+    setQty(1);
+  }, [product.id]);
+
+  const aggregateSoldOut = isSoldOut(product);
+  const colorAvailable =
+    colors.length > 0 ? Number(colorStock[color] ?? 0) : product.quantity_available;
+  const maxAvailable = Math.max(
+    0,
+    Math.min(product.quantity_available, colorAvailable),
+  );
+  const soldOut = aggregateSoldOut || (colors.length > 0 && maxAvailable <= 0);
+
+  useEffect(() => {
+    setQty((current) =>
+      maxAvailable > 0 ? Math.max(1, Math.min(current, maxAvailable)) : 1,
+    );
+  }, [maxAvailable]);
+
   const productUrl = `https://zzerkoff.vercel.app/product/${product.slug}`;
   const schemaImage =
     images[0] && !images[0].startsWith("storage:")
@@ -97,6 +141,7 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
         ? images[0]
         : `https://zzerkoff.vercel.app${images[0]}`
       : "https://zzerkoff.vercel.app/images/zzerkoff-logo.png";
+
   const productSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -110,17 +155,18 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
       "@type": "Offer",
       priceCurrency: site.currencyCode,
       price: Number(product.price),
-      availability: soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      availability: soldOut
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
       url: productUrl,
     },
   };
 
   const delivery =
-    product.delivery ||
-    site.settings?.default_delivery ||
-    SITE.delivery;
+    product.delivery || site.settings?.default_delivery || SITE.delivery;
   const care = product.care || site.settings?.default_care || "";
-  const sizeGuide = product.size_guide || site.settings?.default_size_guide || "";
+  const sizeGuide =
+    product.size_guide || site.settings?.default_size_guide || "";
   const details = product.details_content || product.full_description;
   const material = product.material_content || product.material;
 
@@ -130,37 +176,73 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
     { label: "MATERIAL", body: material },
     { label: "CARE", body: care },
     { label: "DELIVERY", body: delivery },
-  ].filter((s) => !!s.body);
+  ].filter((section) => !!section.body);
 
   const related = useMemo(() => {
-    const published = products.filter((p) => p.id !== product.id && p.published);
+    const published = products.filter(
+      (row) => row.id !== product.id && row.published,
+    );
     const manual = (product.related_product_ids ?? [])
-      .map((id) => published.find((p) => p.id === id))
-      .filter((p): p is Product => !!p)
-      .slice(0, 2);
+      .map((id) => published.find((row) => row.id === id))
+      .filter((row): row is Product => !!row)
+      .slice(0, 4);
+
     if (manual.length) return manual;
 
-    const productTags = new Set((product.tags ?? []).map((t) => t.toLowerCase()));
+    const productTags = new Set(
+      (product.tags ?? []).map((tag) => tag.toLowerCase()),
+    );
+
     return published
-      .map((p) => {
+      .map((row) => {
         let score = 0;
-        if (p.category === product.category) score += 5;
-        if (product.collection_id && p.collection_id === product.collection_id) score += 3;
-        for (const tag of p.tags ?? []) {
+        if (row.category === product.category) score += 5;
+        if (
+          product.collection_id &&
+          row.collection_id === product.collection_id
+        ) {
+          score += 3;
+        }
+        for (const tag of row.tags ?? []) {
           if (productTags.has(tag.toLowerCase())) score += 1;
         }
-        if (!isSoldOut(p)) score += 1;
-        return { p, score };
+        if (!isSoldOut(row)) score += 1;
+        return { row, score };
       })
       .sort((a, b) => b.score - a.score)
-      .slice(0, 2)
-      .map((x) => x.p);
+      .slice(0, 4)
+      .map((result) => result.row);
   }, [product, products]);
 
-  const pill = (active: boolean) =>
+  const pill = (active: boolean, disabled = false) =>
     `rounded-xl border px-4 py-3 text-[9px] uppercase tracking-[0.3em] transition-colors ${
-      active ? "border-chrome/70 text-foreground" : "border-border/60 text-muted-foreground"
+      disabled
+        ? "cursor-not-allowed border-border/30 text-muted-foreground/35"
+        : active
+          ? "border-chrome/70 bg-white/[0.04] text-foreground"
+          : "border-border/60 text-muted-foreground hover:text-foreground"
     }`;
+
+  const addToCart = () => {
+    if (soldOut) return;
+
+    addCartItem({
+      key: productCartKey(product.id, size, finish, color),
+      kind: "product",
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      code: product.product_code,
+      image: product.primary_image,
+      price: Number(product.price),
+      quantity: qty,
+      size,
+      finish,
+      color,
+    });
+
+    toast.success("Added to Cart. Checkout will activate later.");
+  };
 
   return (
     <>
@@ -170,8 +252,12 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
           __html: JSON.stringify(productSchema).replace(/</g, "\\u003c"),
         }}
       />
+
       <div className="relative mt-10 grid gap-12 pb-24 lg:grid-cols-[58fr_42fr] lg:gap-16">
-        <LiquidChrome className="-left-40 top-20 h-[38rem] w-[38rem]" opacity={0.16} />
+        <LiquidChrome
+          className="-left-40 top-20 h-[38rem] w-[38rem]"
+          opacity={0.16}
+        />
 
         <Reveal className="space-y-4">
           <div className="glass-panel relative overflow-hidden rounded-[28px]">
@@ -184,6 +270,12 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
               className="aspect-4/5 w-full object-cover grayscale"
             />
             <div className="grain-overlay" />
+
+            <WishlistButton
+              productId={product.id}
+              className="absolute right-5 top-5 z-20 bg-black/70"
+            />
+
             {soldOut && (
               <span className="absolute left-5 top-5 rounded-full border border-chrome/50 bg-black/70 px-4 py-2 text-[9px] uppercase tracking-[0.35em] text-foreground backdrop-blur-md">
                 Sold out
@@ -193,11 +285,14 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
 
           {images.length > 1 && (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              {images.slice(1).map((src, i) => (
-                <div key={`${src}-${i}`} className="glass-panel overflow-hidden rounded-[22px]">
+              {images.slice(1).map((src, index) => (
+                <div
+                  key={`${src}-${index}`}
+                  className="glass-panel overflow-hidden rounded-[22px]"
+                >
                   <SmartImage
                     src={src}
-                    alt={`${product.name} view ${i + 2}`}
+                    alt={`${product.name} view ${index + 2}`}
                     width={1024}
                     height={1024}
                     className="aspect-square w-full object-cover grayscale"
@@ -212,9 +307,11 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
           <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
             {product.product_code}
           </span>
+
           <h1 className="mt-5 font-display text-2xl leading-tight tracking-[0.12em] text-foreground sm:text-3xl">
             {product.name}
           </h1>
+
           <p className="mt-4 text-sm tracking-[0.25em] text-chrome">
             {formatPrice(product.price, site.currencySymbol)}
             {product.old_price ? (
@@ -228,38 +325,68 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
             {product.short_description
               .split(/[.\n]/)
               .filter(Boolean)
-              .map((s) => (
+              .map((line) => (
                 <p
-                  key={s}
+                  key={line}
                   className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground"
                 >
-                  {s.trim()}
+                  {line.trim()}
                 </p>
               ))}
+
             {product.fit_gender && (
               <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
                 {product.fit_gender}
               </p>
             )}
+
             <p className="pt-2 text-[10px] uppercase tracking-[0.35em] text-chrome">
-              {product.stock_status}
+              {soldOut ? "SOLD OUT" : product.stock_status}
             </p>
           </div>
 
-          {sizes.length > 0 && (
+          {colors.length > 0 && (
             <div className="mt-8">
+              <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
+                Color
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {colors.map((value) => {
+                  const available = Number(colorStock[value] ?? 0);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={available <= 0}
+                      onClick={() => {
+                        setColor(value);
+                        setQty(1);
+                      }}
+                      className={pill(color === value, available <= 0)}
+                    >
+                      {value}
+                      <span className="ml-2 opacity-55">{available}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {sizes.length > 0 && (
+            <div className="mt-6">
               <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
                 Size
               </span>
               <div className="flex flex-wrap gap-2">
-                {sizes.map((s) => (
+                {sizes.map((value) => (
                   <button
-                    key={s}
+                    key={value}
                     type="button"
-                    onClick={() => setSize(s)}
-                    className={pill(size === s)}
+                    onClick={() => setSize(value)}
+                    className={pill(size === value)}
                   >
-                    {s}
+                    {value}
                   </button>
                 ))}
               </div>
@@ -277,14 +404,14 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                 Finish
               </span>
               <div className="flex flex-wrap gap-2">
-                {finishes.map((f) => (
+                {finishes.map((value) => (
                   <button
-                    key={f}
+                    key={value}
                     type="button"
-                    onClick={() => setFinish(f)}
-                    className={pill(finish === f)}
+                    onClick={() => setFinish(value)}
+                    className={pill(finish === value)}
                   >
-                    {f}
+                    {value}
                   </button>
                 ))}
               </div>
@@ -299,26 +426,34 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
               <button
                 type="button"
                 aria-label="Decrease quantity"
-                onClick={() => setQty((n) => Math.max(1, n - 1))}
+                onClick={() => setQty((value) => Math.max(1, value - 1))}
                 className="grid size-10 place-items-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground"
               >
                 −
               </button>
-              <span className="text-xs tracking-[0.3em] text-foreground">{qty}</span>
+              <span className="text-xs tracking-[0.3em] text-foreground">
+                {qty}
+              </span>
               <button
                 type="button"
                 aria-label="Increase quantity"
+                disabled={soldOut || qty >= maxAvailable}
                 onClick={() =>
-                  setQty((n) =>
-                    product.quantity_available > 0
-                      ? Math.min(product.quantity_available, n + 1)
-                      : n + 1,
+                  setQty((value) =>
+                    maxAvailable > 0
+                      ? Math.min(maxAvailable, value + 1)
+                      : value,
                   )
                 }
-                className="grid size-10 place-items-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground"
+                className="grid size-10 place-items-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30"
               >
                 +
               </button>
+              {!soldOut && (
+                <span className="text-[8px] uppercase tracking-[0.24em] text-muted-foreground">
+                  {maxAvailable} available
+                </span>
+              )}
             </div>
           </div>
 
@@ -327,13 +462,17 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
           </p>
 
           <Accordion type="single" collapsible className="mt-8">
-            {sections.map((s) => (
-              <AccordionItem key={s.label} value={s.label} className="border-border/60">
+            {sections.map((section) => (
+              <AccordionItem
+                key={section.label}
+                value={section.label}
+                className="border-border/60"
+              >
                 <AccordionTrigger className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground hover:text-foreground hover:no-underline">
-                  {s.label}
+                  {section.label}
                 </AccordionTrigger>
                 <AccordionContent className="whitespace-pre-line text-xs leading-relaxed tracking-[0.1em] text-muted-foreground">
-                  {s.body}
+                  {section.body}
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -346,7 +485,9 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                   Sold out
                 </div>
                 <a
-                  href={site.wa(restockMessage(product.name, product.product_code))}
+                  href={site.wa(
+                    restockMessage(product.name, product.product_code),
+                  )}
                   target="_blank"
                   rel="noreferrer"
                   className="block w-full rounded-full border border-chrome/40 px-8 py-5 text-center text-[10px] uppercase tracking-[0.4em] text-foreground transition-colors duration-500 hover:border-chrome hover:bg-white/[0.06]"
@@ -355,6 +496,7 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                 </a>
               </>
             ) : (
+              <>
                 <button
                   type="button"
                   onClick={() => setOrderOpen(true)}
@@ -363,6 +505,18 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
                   Place order
                   <ArrowUpRight className="size-4 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </button>
+
+                <button
+                  type="button"
+                  onClick={addToCart}
+                  className="flex w-full items-center justify-center gap-3 rounded-full border border-border/60 px-8 py-5 text-[9px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:border-chrome/50 hover:text-foreground"
+                >
+                  <ShoppingBag className="size-4" />
+                  Add to cart / future checkout
+                </button>
+
+                <WishlistButton productId={product.id} label className="w-full" />
+              </>
             )}
           </div>
         </Reveal>
@@ -378,19 +532,29 @@ function ProductDetail({ product, products }: { product: Product; products: Prod
         currencySymbol={site.currencySymbol}
         size={size}
         finish={finish}
+        color={color}
         quantity={qty}
       />
 
       {related.length > 0 && (
         <section className="pb-32">
           <Reveal className="border-y border-border/50 py-5">
-            <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
-              RELATED OBJECTS
-            </span>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
+                RELATED OBJECTS
+              </span>
+              <Link
+                to="/shop-the-look"
+                className="text-[8px] uppercase tracking-[0.28em] text-chrome"
+              >
+                Shop the Look
+              </Link>
+            </div>
           </Reveal>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+            {related.map((row) => (
+              <ProductCard key={row.id} product={row} />
             ))}
           </div>
         </section>

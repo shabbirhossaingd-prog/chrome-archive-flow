@@ -5,6 +5,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSite } from "@/lib/settings";
+import { SmartImage } from "@/components/site/SmartImage";
 import { money, prettyKey } from "@/lib/erp";
 import {
   ErpButton,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_authenticated/erp/inventory")({
 
 type Product = {
   id: string;
+  primary_image: string;
   name: string;
   product_code: string;
   price: number | string;
@@ -59,7 +61,7 @@ function ErpInventory() {
       const { data, error } = await (supabase as any)
         .from("products")
         .select(
-          "id,name,product_code,price,quantity_available,stock_status,erp_average_cost,erp_low_stock_threshold,archived",
+          "id,primary_image,name,product_code,price,quantity_available,stock_status,erp_average_cost,erp_low_stock_threshold,archived",
         )
         .eq("archived", false)
         .order("product_code");
@@ -268,13 +270,22 @@ function ErpInventory() {
                 className="rounded-[22px] border border-border/45 bg-white/[0.015] p-4"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground">
-                      {product.product_code}
-                    </p>
-                    <h3 className="mt-2 truncate text-xs tracking-[0.08em] text-foreground">
-                      {product.name}
-                    </h3>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <SmartImage
+                      src={product.primary_image}
+                      alt={product.name}
+                      width={120}
+                      height={120}
+                      className="size-14 shrink-0 rounded-2xl object-cover grayscale sm:size-16"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground">
+                        {product.product_code}
+                      </p>
+                      <h3 className="mt-2 truncate text-xs tracking-[0.08em] text-foreground">
+                        {product.name}
+                      </h3>
+                    </div>
                   </div>
 
                   <span

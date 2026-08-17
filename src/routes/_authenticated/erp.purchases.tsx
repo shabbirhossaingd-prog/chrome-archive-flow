@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSite } from "@/lib/settings";
+import { SmartImage } from "@/components/site/SmartImage";
 import { money } from "@/lib/erp";
 import {
   ErpButton,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/erp/purchases")({
 
 type Product = {
   id: string;
+  primary_image: string;
   name: string;
   product_code: string;
   quantity_available: number;
@@ -72,7 +74,7 @@ function ErpPurchases() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("products")
-        .select("id,name,product_code,quantity_available,erp_average_cost")
+        .select("id,primary_image,name,product_code,quantity_available,erp_average_cost")
         .eq("archived", false)
         .order("name");
       if (error) throw error;
@@ -211,17 +213,29 @@ function ErpPurchases() {
             </label>
 
             {selectedProduct && (
-              <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border/45 bg-white/[0.02] p-4">
-                <div>
-                  <ErpLabel>Current stock</ErpLabel>
-                  <p className="mt-2 text-sm text-foreground">
-                    {selectedProduct.quantity_available}
-                  </p>
-                </div>
-                <div>
-                  <ErpLabel>Current avg cost</ErpLabel>
-                  <p className="mt-2 text-sm text-foreground">
-                    {money(selectedProduct.erp_average_cost, site.currencySymbol)}
+              <div className="flex items-center gap-4 rounded-2xl border border-border/45 bg-white/[0.02] p-4">
+                <SmartImage
+                  src={selectedProduct.primary_image}
+                  alt={selectedProduct.name}
+                  width={120}
+                  height={120}
+                  className="size-16 shrink-0 rounded-2xl object-cover grayscale"
+                />
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-3">
+                  <div>
+                    <ErpLabel>Current stock</ErpLabel>
+                    <p className="mt-2 text-sm text-foreground">
+                      {selectedProduct.quantity_available}
+                    </p>
+                  </div>
+                  <div>
+                    <ErpLabel>Current avg cost</ErpLabel>
+                    <p className="mt-2 text-sm text-foreground">
+                      {money(selectedProduct.erp_average_cost, site.currencySymbol)}
+                    </p>
+                  </div>
+                  <p className="col-span-2 truncate text-[9px] tracking-[0.06em] text-muted-foreground">
+                    {selectedProduct.product_code} · {selectedProduct.name}
                   </p>
                 </div>
               </div>

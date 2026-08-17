@@ -5,14 +5,17 @@ import { useSite } from "@/lib/settings";
 
 const LINKS = [
   { label: "SHOP", to: "/shop" as const },
+  { label: "SHOP THE LOOK", to: "/shop-the-look" as const },
+  { label: "BUNDLES", to: "/bundles" as const },
   { label: "NEW COLLECTION", to: "/collection" as const },
   { label: "ARCHIVE", to: "/archive" as const },
-  { label: "ABOUT", to: "/about" as const },
-  { label: "CONTACT", to: "/contact" as const },
+  { label: "WISHLIST", to: "/wishlist" as const },
+  { label: "ACCOUNT", to: "/account" as const },
   { label: "TRACK ORDER", to: "/track-order" as const },
   { label: "SHIPPING", to: "/shipping" as const },
   { label: "RETURNS", to: "/returns" as const },
   { label: "SIZE GUIDE", to: "/size-guide" as const },
+  { label: "CARE GUIDE", to: "/care-guide" as const },
   { label: "FAQ", to: "/faq" as const },
   { label: "PRIVACY", to: "/privacy" as const },
   { label: "TERMS", to: "/terms" as const },
@@ -20,9 +23,13 @@ const LINKS = [
 
 export function Footer() {
   const site = useSite();
+
   return (
     <footer className="relative isolate overflow-hidden pt-32">
-      <LiquidChrome className="-bottom-40 left-1/2 h-[46rem] w-[46rem] -translate-x-1/2" opacity={0.14} />
+      <LiquidChrome
+        className="-bottom-40 left-1/2 h-[46rem] w-[46rem] -translate-x-1/2"
+        opacity={0.14}
+      />
 
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="flex flex-col items-center">
@@ -34,21 +41,22 @@ export function Footer() {
             height={220}
             className="w-32 animate-float-slow mix-blend-lighten contrast-125 sm:w-44"
           />
+
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            {LINKS.map((l) => (
+            {LINKS.map((link) => (
               <Link
-                key={l.label}
-                to={l.to}
-                className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
+                key={link.label}
+                to={link.to}
+                className="text-[10px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:text-foreground"
               >
-                {l.label}
+                {link.label}
               </Link>
             ))}
             <a
               href={site.instagramUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
+              className="text-[10px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:text-foreground"
             >
               INSTAGRAM
             </a>
@@ -56,13 +64,13 @@ export function Footer() {
               href={site.wa(`Hi ${site.brand},`)}
               target="_blank"
               rel="noreferrer"
-              className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
+              className="text-[10px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:text-foreground"
             >
               WHATSAPP
             </a>
             <a
               href={site.emailHref}
-              className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground transition-colors hover:text-foreground"
+              className="text-[10px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:text-foreground"
             >
               EMAIL
             </a>

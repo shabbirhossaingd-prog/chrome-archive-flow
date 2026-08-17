@@ -12,17 +12,23 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BundlesRouteImport } from './routes/bundles'
+import { Route as CareGuideRouteImport } from './routes/care-guide'
+import { Route as CartRouteImport } from './routes/cart'
 import { Route as CollectionRouteImport } from './routes/collection'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ReturnsRouteImport } from './routes/returns'
 import { Route as ShippingRouteImport } from './routes/shipping'
+import { Route as ShopTheLookRouteImport } from './routes/shop-the-look'
 import { Route as SizeGuideRouteImport } from './routes/size-guide'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TrackOrderRouteImport } from './routes/track-order'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedErpRouteImport } from './routes/_authenticated/erp'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin.forgot-password'
@@ -37,6 +43,7 @@ import { Route as ShopCategoryRouteImport } from './routes/shop.$category'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminArchiveRouteImport } from './routes/_authenticated/admin.archive'
 import { Route as AuthenticatedAdminCollectionsRouteImport } from './routes/_authenticated/admin.collections'
+import { Route as AuthenticatedAdminCommerceRouteImport } from './routes/_authenticated/admin.commerce'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin.orders'
 import { Route as AuthenticatedAdminPagesRouteImport } from './routes/_authenticated/admin.pages'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -53,6 +60,7 @@ import { Route as AuthenticatedAdminBlogNewRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminProductsIndexRouteImport } from './routes/_authenticated/admin.products.index'
 import { Route as AuthenticatedAdminProductsIdRouteImport } from './routes/_authenticated/admin.products.$id'
 import { Route as AuthenticatedAdminProductsNewRouteImport } from './routes/_authenticated/admin.products.new'
+import { Route as AuthenticatedAdminProductsIdColorsRouteImport } from './routes/_authenticated/admin.products.$id.colors'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,6 +76,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArchiveRoute = ArchiveRouteImport.update({
   id: '/archive',
   path: '/archive',
@@ -76,6 +89,21 @@ const ArchiveRoute = ArchiveRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BundlesRoute = BundlesRouteImport.update({
+  id: '/bundles',
+  path: '/bundles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareGuideRoute = CareGuideRouteImport.update({
+  id: '/care-guide',
+  path: '/care-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionRoute = CollectionRouteImport.update({
@@ -108,6 +136,11 @@ const ShippingRoute = ShippingRouteImport.update({
   path: '/shipping',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShopTheLookRoute = ShopTheLookRouteImport.update({
+  id: '/shop-the-look',
+  path: '/shop-the-look',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SizeGuideRoute = SizeGuideRouteImport.update({
   id: '/size-guide',
   path: '/size-guide',
@@ -121,6 +154,11 @@ const TermsRoute = TermsRouteImport.update({
 const TrackOrderRoute = TrackOrderRouteImport.update({
   id: '/track-order',
   path: '/track-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -193,6 +231,12 @@ const AuthenticatedAdminCollectionsRoute =
   AuthenticatedAdminCollectionsRouteImport.update({
     id: '/collections',
     path: '/collections',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminCommerceRoute =
+  AuthenticatedAdminCommerceRouteImport.update({
+    id: '/commerce',
+    path: '/commerce',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminOrdersRoute =
@@ -288,21 +332,33 @@ const AuthenticatedAdminProductsNewRoute =
     path: '/products/new',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminProductsIdColorsRoute =
+  AuthenticatedAdminProductsIdColorsRouteImport.update({
+    id: '/colors',
+    path: '/colors',
+    getParentRoute: () => AuthenticatedAdminProductsIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bundles': typeof BundlesRoute
+  '/care-guide': typeof CareGuideRoute
+  '/cart': typeof CartRoute
   '/collection': typeof CollectionRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
+  '/shop-the-look': typeof ShopTheLookRoute
   '/size-guide': typeof SizeGuideRoute
   '/terms': typeof TermsRoute
   '/track-order': typeof TrackOrderRoute
+  '/wishlist': typeof WishlistRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/erp': typeof AuthenticatedErpRouteWithChildren
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
@@ -316,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/shop/': typeof ShopIndexRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/collections': typeof AuthenticatedAdminCollectionsRoute
+  '/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -329,25 +386,32 @@ export interface FileRoutesByFullPath {
   '/erp/': typeof AuthenticatedErpIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
-  '/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
+  '/admin/products/$id': typeof AuthenticatedAdminProductsIdRouteWithChildren
   '/admin/products/new': typeof AuthenticatedAdminProductsNewRoute
   '/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
   '/admin/products/': typeof AuthenticatedAdminProductsIndexRoute
+  '/admin/products/$id/colors': typeof AuthenticatedAdminProductsIdColorsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bundles': typeof BundlesRoute
+  '/care-guide': typeof CareGuideRoute
+  '/cart': typeof CartRoute
   '/collection': typeof CollectionRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
+  '/shop-the-look': typeof ShopTheLookRoute
   '/size-guide': typeof SizeGuideRoute
   '/terms': typeof TermsRoute
   '/track-order': typeof TrackOrderRoute
+  '/wishlist': typeof WishlistRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/reset-password': typeof AdminResetPasswordRoute
@@ -359,6 +423,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopIndexRoute
   '/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/admin/collections': typeof AuthenticatedAdminCollectionsRoute
+  '/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -372,27 +437,34 @@ export interface FileRoutesByTo {
   '/erp': typeof AuthenticatedErpIndexRoute
   '/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
-  '/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
+  '/admin/products/$id': typeof AuthenticatedAdminProductsIdRouteWithChildren
   '/admin/products/new': typeof AuthenticatedAdminProductsNewRoute
   '/admin/blog': typeof AuthenticatedAdminBlogIndexRoute
   '/admin/products': typeof AuthenticatedAdminProductsIndexRoute
+  '/admin/products/$id/colors': typeof AuthenticatedAdminProductsIdColorsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
   '/archive': typeof ArchiveRouteWithChildren
   '/auth': typeof AuthRoute
+  '/bundles': typeof BundlesRoute
+  '/care-guide': typeof CareGuideRoute
+  '/cart': typeof CartRoute
   '/collection': typeof CollectionRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/privacy': typeof PrivacyRoute
   '/returns': typeof ReturnsRoute
   '/shipping': typeof ShippingRoute
+  '/shop-the-look': typeof ShopTheLookRoute
   '/size-guide': typeof SizeGuideRoute
   '/terms': typeof TermsRoute
   '/track-order': typeof TrackOrderRoute
+  '/wishlist': typeof WishlistRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/erp': typeof AuthenticatedErpRouteWithChildren
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
@@ -406,6 +478,7 @@ export interface FileRoutesById {
   '/shop/': typeof ShopIndexRoute
   '/_authenticated/admin/archive': typeof AuthenticatedAdminArchiveRoute
   '/_authenticated/admin/collections': typeof AuthenticatedAdminCollectionsRoute
+  '/_authenticated/admin/commerce': typeof AuthenticatedAdminCommerceRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
   '/_authenticated/admin/pages': typeof AuthenticatedAdminPagesRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -419,27 +492,34 @@ export interface FileRoutesById {
   '/_authenticated/erp/': typeof AuthenticatedErpIndexRoute
   '/_authenticated/admin/blog/$id': typeof AuthenticatedAdminBlogIdRoute
   '/_authenticated/admin/blog/new': typeof AuthenticatedAdminBlogNewRoute
-  '/_authenticated/admin/products/$id': typeof AuthenticatedAdminProductsIdRoute
+  '/_authenticated/admin/products/$id': typeof AuthenticatedAdminProductsIdRouteWithChildren
   '/_authenticated/admin/products/new': typeof AuthenticatedAdminProductsNewRoute
   '/_authenticated/admin/blog/': typeof AuthenticatedAdminBlogIndexRoute
   '/_authenticated/admin/products/': typeof AuthenticatedAdminProductsIndexRoute
+  '/_authenticated/admin/products/$id/colors': typeof AuthenticatedAdminProductsIdColorsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/about'
+    | '/account'
     | '/archive'
     | '/auth'
+    | '/bundles'
+    | '/care-guide'
+    | '/cart'
     | '/collection'
     | '/contact'
     | '/faq'
     | '/privacy'
     | '/returns'
     | '/shipping'
+    | '/shop-the-look'
     | '/size-guide'
     | '/terms'
     | '/track-order'
+    | '/wishlist'
     | '/admin'
     | '/erp'
     | '/admin/forgot-password'
@@ -453,6 +533,7 @@ export interface FileRouteTypes {
     | '/shop/'
     | '/admin/archive'
     | '/admin/collections'
+    | '/admin/commerce'
     | '/admin/orders'
     | '/admin/pages'
     | '/admin/settings'
@@ -470,21 +551,28 @@ export interface FileRouteTypes {
     | '/admin/products/new'
     | '/admin/blog/'
     | '/admin/products/'
+    | '/admin/products/$id/colors'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/account'
     | '/archive'
     | '/auth'
+    | '/bundles'
+    | '/care-guide'
+    | '/cart'
     | '/collection'
     | '/contact'
     | '/faq'
     | '/privacy'
     | '/returns'
     | '/shipping'
+    | '/shop-the-look'
     | '/size-guide'
     | '/terms'
     | '/track-order'
+    | '/wishlist'
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/reset-password'
@@ -496,6 +584,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/admin/archive'
     | '/admin/collections'
+    | '/admin/commerce'
     | '/admin/orders'
     | '/admin/pages'
     | '/admin/settings'
@@ -513,22 +602,29 @@ export interface FileRouteTypes {
     | '/admin/products/new'
     | '/admin/blog'
     | '/admin/products'
+    | '/admin/products/$id/colors'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/account'
     | '/archive'
     | '/auth'
+    | '/bundles'
+    | '/care-guide'
+    | '/cart'
     | '/collection'
     | '/contact'
     | '/faq'
     | '/privacy'
     | '/returns'
     | '/shipping'
+    | '/shop-the-look'
     | '/size-guide'
     | '/terms'
     | '/track-order'
+    | '/wishlist'
     | '/_authenticated/admin'
     | '/_authenticated/erp'
     | '/admin/forgot-password'
@@ -542,6 +638,7 @@ export interface FileRouteTypes {
     | '/shop/'
     | '/_authenticated/admin/archive'
     | '/_authenticated/admin/collections'
+    | '/_authenticated/admin/commerce'
     | '/_authenticated/admin/orders'
     | '/_authenticated/admin/pages'
     | '/_authenticated/admin/settings'
@@ -559,23 +656,30 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/products/new'
     | '/_authenticated/admin/blog/'
     | '/_authenticated/admin/products/'
+    | '/_authenticated/admin/products/$id/colors'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AccountRoute: typeof AccountRoute
   ArchiveRoute: typeof ArchiveRouteWithChildren
   AuthRoute: typeof AuthRoute
+  BundlesRoute: typeof BundlesRoute
+  CareGuideRoute: typeof CareGuideRoute
+  CartRoute: typeof CartRoute
   CollectionRoute: typeof CollectionRoute
   ContactRoute: typeof ContactRoute
   FaqRoute: typeof FaqRoute
   PrivacyRoute: typeof PrivacyRoute
   ReturnsRoute: typeof ReturnsRoute
   ShippingRoute: typeof ShippingRoute
+  ShopTheLookRoute: typeof ShopTheLookRoute
   SizeGuideRoute: typeof SizeGuideRoute
   TermsRoute: typeof TermsRoute
   TrackOrderRoute: typeof TrackOrderRoute
+  WishlistRoute: typeof WishlistRoute
   AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminResetPasswordRoute: typeof AdminResetPasswordRoute
@@ -609,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/archive': {
       id: '/archive'
       path: '/archive'
@@ -621,6 +732,27 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bundles': {
+      id: '/bundles'
+      path: '/bundles'
+      fullPath: '/bundles'
+      preLoaderRoute: typeof BundlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/care-guide': {
+      id: '/care-guide'
+      path: '/care-guide'
+      fullPath: '/care-guide'
+      preLoaderRoute: typeof CareGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collection': {
@@ -665,6 +797,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShippingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shop-the-look': {
+      id: '/shop-the-look'
+      path: '/shop-the-look'
+      fullPath: '/shop-the-look'
+      preLoaderRoute: typeof ShopTheLookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/size-guide': {
       id: '/size-guide'
       path: '/size-guide'
@@ -684,6 +823,13 @@ declare module '@tanstack/react-router' {
       path: '/track-order'
       fullPath: '/track-order'
       preLoaderRoute: typeof TrackOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -782,6 +928,13 @@ declare module '@tanstack/react-router' {
       path: '/collections'
       fullPath: '/admin/collections'
       preLoaderRoute: typeof AuthenticatedAdminCollectionsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/commerce': {
+      id: '/_authenticated/admin/commerce'
+      path: '/commerce'
+      fullPath: '/admin/commerce'
+      preLoaderRoute: typeof AuthenticatedAdminCommerceRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/orders': {
@@ -896,19 +1049,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProductsNewRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/products/$id/colors': {
+      id: '/_authenticated/admin/products/$id/colors'
+      path: '/colors'
+      fullPath: '/admin/products/$id/colors'
+      preLoaderRoute: typeof AuthenticatedAdminProductsIdColorsRouteImport
+      parentRoute: typeof AuthenticatedAdminProductsIdRoute
+    }
   }
 }
+
+interface AuthenticatedAdminProductsIdRouteChildren {
+  AuthenticatedAdminProductsIdColorsRoute: typeof AuthenticatedAdminProductsIdColorsRoute
+}
+
+const AuthenticatedAdminProductsIdRouteChildren: AuthenticatedAdminProductsIdRouteChildren =
+  {
+    AuthenticatedAdminProductsIdColorsRoute:
+      AuthenticatedAdminProductsIdColorsRoute,
+  }
+
+const AuthenticatedAdminProductsIdRouteWithChildren =
+  AuthenticatedAdminProductsIdRoute._addFileChildren(
+    AuthenticatedAdminProductsIdRouteChildren,
+  )
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminArchiveRoute: typeof AuthenticatedAdminArchiveRoute
   AuthenticatedAdminCollectionsRoute: typeof AuthenticatedAdminCollectionsRoute
+  AuthenticatedAdminCommerceRoute: typeof AuthenticatedAdminCommerceRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
   AuthenticatedAdminPagesRoute: typeof AuthenticatedAdminPagesRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedAdminBlogIdRoute: typeof AuthenticatedAdminBlogIdRoute
   AuthenticatedAdminBlogNewRoute: typeof AuthenticatedAdminBlogNewRoute
-  AuthenticatedAdminProductsIdRoute: typeof AuthenticatedAdminProductsIdRoute
+  AuthenticatedAdminProductsIdRoute: typeof AuthenticatedAdminProductsIdRouteWithChildren
   AuthenticatedAdminProductsNewRoute: typeof AuthenticatedAdminProductsNewRoute
   AuthenticatedAdminBlogIndexRoute: typeof AuthenticatedAdminBlogIndexRoute
   AuthenticatedAdminProductsIndexRoute: typeof AuthenticatedAdminProductsIndexRoute
@@ -917,13 +1093,15 @@ interface AuthenticatedAdminRouteChildren {
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminArchiveRoute: AuthenticatedAdminArchiveRoute,
   AuthenticatedAdminCollectionsRoute: AuthenticatedAdminCollectionsRoute,
+  AuthenticatedAdminCommerceRoute: AuthenticatedAdminCommerceRoute,
   AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
   AuthenticatedAdminPagesRoute: AuthenticatedAdminPagesRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedAdminBlogIdRoute: AuthenticatedAdminBlogIdRoute,
   AuthenticatedAdminBlogNewRoute: AuthenticatedAdminBlogNewRoute,
-  AuthenticatedAdminProductsIdRoute: AuthenticatedAdminProductsIdRoute,
+  AuthenticatedAdminProductsIdRoute:
+    AuthenticatedAdminProductsIdRouteWithChildren,
   AuthenticatedAdminProductsNewRoute: AuthenticatedAdminProductsNewRoute,
   AuthenticatedAdminBlogIndexRoute: AuthenticatedAdminBlogIndexRoute,
   AuthenticatedAdminProductsIndexRoute: AuthenticatedAdminProductsIndexRoute,
@@ -983,17 +1161,23 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AccountRoute: AccountRoute,
   ArchiveRoute: ArchiveRouteWithChildren,
   AuthRoute: AuthRoute,
+  BundlesRoute: BundlesRoute,
+  CareGuideRoute: CareGuideRoute,
+  CartRoute: CartRoute,
   CollectionRoute: CollectionRoute,
   ContactRoute: ContactRoute,
   FaqRoute: FaqRoute,
   PrivacyRoute: PrivacyRoute,
   ReturnsRoute: ReturnsRoute,
   ShippingRoute: ShippingRoute,
+  ShopTheLookRoute: ShopTheLookRoute,
   SizeGuideRoute: SizeGuideRoute,
   TermsRoute: TermsRoute,
   TrackOrderRoute: TrackOrderRoute,
+  WishlistRoute: WishlistRoute,
   AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminResetPasswordRoute: AdminResetPasswordRoute,

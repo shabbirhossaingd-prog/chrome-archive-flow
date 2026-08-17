@@ -41,6 +41,11 @@ type Order = {
   quantity: number;
   selected_size: string | null;
   selected_finish: string | null;
+  selected_color: string | null;
+  subtotal_price: number | string | null;
+  discount_amount: number | string;
+  promo_code: string | null;
+  customer_email: string | null;
   total_price: number | string;
   admin_note: string;
   payment_method: "cod" | "bkash" | "nagad";
@@ -380,7 +385,11 @@ function AdminOrders() {
       ) : (
         <div className="space-y-4">
           {visible.map((order) => {
-            const selected = [order.selected_size, order.selected_finish]
+            const selected = [
+              order.selected_color,
+              order.selected_size,
+              order.selected_finish,
+            ]
               .filter(Boolean)
               .join(" / ");
             const timeline = [
@@ -443,6 +452,14 @@ function AdminOrders() {
                     >
                       {order.phone}
                     </a>
+                    {order.customer_email && (
+                      <a
+                        href={`mailto:${order.customer_email}`}
+                        className="mt-2 block break-all text-[9px] tracking-[0.06em] text-muted-foreground hover:text-foreground"
+                      >
+                        {order.customer_email}
+                      </a>
+                    )}
                   </div>
 
                   <div>
@@ -461,6 +478,16 @@ function AdminOrders() {
                       {site.currencySymbol}
                       {Number(order.total_price).toLocaleString("en-US")}
                     </p>
+                    {Number(order.discount_amount || 0) > 0 && (
+                      <p className="mt-2 text-[8px] uppercase tracking-[0.22em] text-muted-foreground">
+                        {order.promo_code ? `Promo ${order.promo_code} · ` : ""}
+                        Discount −{site.currencySymbol}
+                        {Number(order.discount_amount).toLocaleString("en-US")}
+                        {order.subtotal_price != null
+                          ? ` · Subtotal ${site.currencySymbol}${Number(order.subtotal_price).toLocaleString("en-US")}`
+                          : ""}
+                      </p>
+                    )}
                   </div>
 
                   <div>

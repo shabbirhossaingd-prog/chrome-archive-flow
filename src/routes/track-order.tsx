@@ -30,6 +30,10 @@ type TrackedOrder = {
   quantity: number;
   selected_size: string | null;
   selected_finish: string | null;
+  selected_color: string | null;
+  subtotal_price: number | string | null;
+  discount_amount: number | string;
+  promo_code: string | null;
   total_price: number | string;
   created_at: string;
   confirmed_at: string | null;
@@ -97,7 +101,9 @@ function TrackOrderPage() {
   };
 
   const selected = order
-    ? [order.selected_size, order.selected_finish].filter(Boolean).join(" / ")
+    ? [order.selected_color, order.selected_size, order.selected_finish]
+        .filter(Boolean)
+        .join(" / ")
     : "";
 
   const currentIndex = order ? STATUS_ORDER.indexOf(order.status) : -1;
@@ -183,9 +189,19 @@ function TrackOrderPage() {
                 </div>
                 <div className="text-right">
                   <span className="inline-block rounded-xl border border-chrome/50 px-3 py-2 text-[8px] uppercase tracking-[0.25em] text-chrome">{order.status}</span>
-                  <p className="mt-4 text-xs tracking-[0.15em] text-foreground">
+                  {Number(order.discount_amount || 0) > 0 && order.subtotal_price != null && (
+                    <p className="mt-4 text-[9px] tracking-[0.12em] text-muted-foreground line-through">
+                      {site.currencySymbol}{Number(order.subtotal_price).toLocaleString("en-US")}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs tracking-[0.15em] text-foreground">
                     {site.currencySymbol}{Number(order.total_price).toLocaleString("en-US")}
                   </p>
+                  {order.promo_code && (
+                    <p className="mt-2 text-[8px] uppercase tracking-[0.22em] text-chrome">
+                      Promo {order.promo_code}
+                    </p>
+                  )}
                 </div>
               </div>
 
