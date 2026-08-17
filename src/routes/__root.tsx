@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "ZZERKOFF" },
       { property: "og:image", content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "ZZERKOFF — Objects for the Afterdark" },
+      { name: "twitter:title", content: "ZzerkOff" },
       { name: "twitter:description", content: "Unisex chrome accessories. Vintage metal, gothic form, underground culture." },
       { name: "twitter:image", content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png" },
       { name: "theme-color", content: "#050505" },
