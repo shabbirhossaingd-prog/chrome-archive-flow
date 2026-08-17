@@ -8,8 +8,8 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { SmartImage } from "@/components/site/SmartImage";
 import { useProducts } from "@/lib/products";
 import { useCurrentCollection } from "@/lib/cms";
-import campaign1 from "@/assets/campaign-1.jpg";
-import campaign2 from "@/assets/campaign-2.jpg";
+import campaign1 from "@/assets/campaign-1.webp";
+import campaign2 from "@/assets/campaign-2.webp";
 
 export const Route = createFileRoute("/collection")({
   head: () => ({

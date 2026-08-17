@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import "@/performance.css";
 import { useEffect, useState } from "react";
 import {
   Heart,
@@ -29,7 +30,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts(searchOpen);
   const site = useSite();
   const wishlist = useWishlist();
   const cart = useCart();

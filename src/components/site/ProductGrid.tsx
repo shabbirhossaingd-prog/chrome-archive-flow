@@ -6,10 +6,12 @@ export function ProductGrid({
   products,
   loading,
   empty = "No objects in this category yet.",
+  priorityCount = 0,
 }: {
   products: Product[];
   loading?: boolean;
   empty?: string;
+  priorityCount?: number;
 }) {
   if (loading) {
     return (
@@ -36,7 +38,7 @@ export function ProductGrid({
     <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
       {products.map((p, i) => (
         <Reveal key={p.id} delay={Math.min(i, 6) * 90}>
-          <ProductCard product={p} />
+          <ProductCard product={p} priority={i < priorityCount} />
         </Reveal>
       ))}
     </div>

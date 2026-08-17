@@ -5,13 +5,73 @@ import { supabase } from "@/integrations/supabase/client";
 import { SmartImage, toStorageRef } from "@/components/site/SmartImage";
 import { adminLabel, AdminButton } from "./AdminUI";
 
+const MAX_IMAGE_EDGE = 2200;
+const OPTIMIZE_FROM_BYTES = 700 * 1024;
+
+async function optimizeForWeb(file: File) {
+  if (
+    file.type === "image/svg+xml" ||
+    file.type === "image/gif" ||
+    typeof createImageBitmap === "undefined"
+  ) {
+    return file;
+  }
+
+  if (file.size < OPTIMIZE_FROM_BYTES) return file;
+
+  let bitmap: ImageBitmap | null = null;
+  try {
+    bitmap = await createImageBitmap(file);
+    const scale = Math.min(
+      1,
+      MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height),
+    );
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) return file;
+
+    context.drawImage(bitmap, 0, 0, width, height);
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.88),
+    );
+
+    if (!blob || blob.size >= file.size * 0.95) return file;
+
+    const name = file.name.replace(/\.[^.]+$/, "") || "zzerkoff-object";
+    return new File([blob], `${name}.webp`, {
+      type: "image/webp",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  } finally {
+    bitmap?.close();
+  }
+}
+
 async function upload(file: File) {
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const optimized = await optimizeForWeb(file);
+  const ext =
+    optimized.name.split(".").pop()?.toLowerCase() ||
+    (optimized.type === "image/webp" ? "webp" : "jpg");
   const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from("product-images").upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-  });
+
+  const { error } = await supabase.storage
+    .from("product-images")
+    .upload(path, optimized, {
+      // UUID paths are immutable, so browsers/CDNs can safely cache them.
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: optimized.type || undefined,
+    });
+
   if (error) throw error;
   return toStorageRef(path);
 }

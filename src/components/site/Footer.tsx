@@ -34,9 +34,10 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="flex flex-col items-center">
           <img
-            src="/images/zzerkoff-logo.png"
+            src="/images/zzerkoff-logo.webp"
             alt="ZZERKOFF chrome monogram"
             loading="lazy"
+            decoding="async"
             width={220}
             height={220}
             className="w-32 animate-float-slow mix-blend-lighten contrast-125 sm:w-44"

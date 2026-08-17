@@ -5,18 +5,46 @@ import type { Database } from "@/integrations/supabase/types";
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 export type Category = Database["public"]["Tables"]["categories"]["Row"];
 
-const ORDER = (q: ReturnType<typeof buildSelect>) =>
+const PUBLIC_PRODUCT_FIELDS = [
+  "id",
+  "slug",
+  "name",
+  "product_code",
+  "category",
+  "collection_id",
+  "collection_name",
+  "material",
+  "primary_image",
+  "price",
+  "old_price",
+  "stock_status",
+  "quantity_available",
+  "sort_order",
+  "created_at",
+  "new_collection",
+  "featured",
+  "published",
+  "archived",
+  "short_description",
+  "tags",
+].join(",");
+
+const ORDER = (q: any) =>
   q.order("sort_order", { ascending: true }).order("created_at", { ascending: false });
 
 const buildSelect = () => supabase.from("products").select("*");
+const buildPublicSelect = () =>
+  supabase.from("products").select(PUBLIC_PRODUCT_FIELDS);
 
-/** Published, non-archived objects — everything the public shop shows. */
+/** Published, non-archived objects — lightweight payload for public cards/lists. */
 export const productsQuery = queryOptions({
   queryKey: ["products", "public"],
   queryFn: async (): Promise<Product[]> => {
-    const { data, error } = await ORDER(buildSelect().eq("published", true).eq("archived", false));
+    const { data, error } = await ORDER(
+      buildPublicSelect().eq("published", true).eq("archived", false),
+    );
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []) as unknown as Product[];
   },
 });
 
@@ -24,13 +52,15 @@ export const productsQuery = queryOptions({
 export const archivedProductsQuery = queryOptions({
   queryKey: ["products", "archived"],
   queryFn: async (): Promise<Product[]> => {
-    const { data, error } = await ORDER(buildSelect().eq("published", true).eq("archived", true));
+    const { data, error } = await ORDER(
+      buildSelect().eq("published", true).eq("archived", true),
+    );
     if (error) throw error;
     return data ?? [];
   },
 });
 
-/** Every published object (shop + archive) — used by search and product pages. */
+/** Every published object (shop + archive). */
 export const allPublishedProductsQuery = queryOptions({
   queryKey: ["products", "all-published"],
   queryFn: async (): Promise<Product[]> => {
@@ -39,6 +69,22 @@ export const allPublishedProductsQuery = queryOptions({
     return data ?? [];
   },
 });
+
+/** One full published object — product pages should not fetch the whole catalogue. */
+export const productBySlugQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["products", "public", "slug", slug],
+    queryFn: async (): Promise<Product | null> => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("published", true)
+        .eq("slug", slug)
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+  });
 
 /** Admin view: drafts included. Requires an admin session (enforced by RLS). */
 export const adminProductsQuery = queryOptions({
@@ -78,8 +124,12 @@ export const allCategoriesQuery = queryOptions({
   },
 });
 
-export function useProducts() {
-  return useQuery(productsQuery);
+export function useProducts(enabled = true) {
+  return useQuery({ ...productsQuery, enabled });
+}
+
+export function useProductBySlug(slug: string) {
+  return useQuery(productBySlugQuery(slug));
 }
 
 export function useAllPublishedProducts() {
@@ -119,6 +169,7 @@ export function matchesSearch(p: Product, q: string) {
     .includes(needle);
 }
 
-export const prettyCategory = (slug: string) => slug.replace(/-/g, " ").toUpperCase();
+export const prettyCategory = (slug: string) =>
+  slug.replace(/-/g, " ").toUpperCase();
 
 export { formatPrice, SITE } from "./site-config";

@@ -166,6 +166,7 @@ function ShopPage() {
               <ProductGrid
                 products={visible}
                 loading={isLoading}
+                priorityCount={2}
                 empty={
                   active === "all"
                     ? "No published objects yet."

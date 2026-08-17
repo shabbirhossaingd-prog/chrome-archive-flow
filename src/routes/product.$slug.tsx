@@ -18,7 +18,8 @@ import {
   formatPrice,
   isSoldOut,
   productImages,
-  useAllPublishedProducts,
+  useProductBySlug,
+  useProducts,
   type Product,
 } from "@/lib/products";
 import { SITE, restockMessage } from "@/lib/site-config";
@@ -57,8 +58,8 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { slug } = Route.useParams();
-  const { data: products = [], isLoading } = useAllPublishedProducts();
-  const product = products.find((row) => row.slug === slug);
+  const { data: product, isLoading } = useProductBySlug(slug);
+  const { data: products = [] } = useProducts();
 
   return (
     <PageShell>

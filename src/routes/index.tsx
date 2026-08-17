@@ -12,8 +12,8 @@ import { ProductGrid } from "@/components/site/ProductGrid";
 import { CategoryCard } from "@/components/site/CategoryCard";
 import { SmartImage } from "@/components/site/SmartImage";
 import { useCurrentCollection } from "@/lib/cms";
-import campaign1 from "@/assets/campaign-1.jpg";
-import campaign2 from "@/assets/campaign-2.jpg";
+import campaign1 from "@/assets/campaign-1.webp";
+import campaign2 from "@/assets/campaign-2.webp";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -80,10 +80,12 @@ function Index() {
 
         <Reveal>
           <img
-            src="/images/zzerkoff-logo.png"
+            src="/images/zzerkoff-logo.webp"
             alt="ZZERKOFF liquid chrome ZZ monogram"
             width={720}
             height={720}
+            fetchPriority="high"
+            decoding="async"
             className="mx-auto w-[68vw] max-w-[34rem] animate-float-slow mix-blend-lighten contrast-125"
           />
         </Reveal>

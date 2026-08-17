@@ -4,7 +4,13 @@ import { SmartImage } from "./SmartImage";
 import { WishlistButton } from "./WishlistButton";
 import { formatPrice, isSoldOut, type Product } from "@/lib/products";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  priority = false,
+}: {
+  product: Product;
+  priority?: boolean;
+}) {
   const soldOut = isSoldOut(product);
 
   return (
@@ -25,6 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
             alt={product.name}
             width={1024}
             height={1280}
+            eager={priority}
             className="aspect-4/5 w-full object-cover grayscale transition-transform duration-[1600ms] ease-out group-hover:scale-105"
           />
           <div className="grain-overlay" />

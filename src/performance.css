@@ -1,0 +1,45 @@
+/*
+ * Mobile performance tuning for the ZZERKOFF visual system.
+ * Desktop keeps the full chrome/glass treatment.
+ * Mobile keeps the same appearance with cheaper compositor work.
+ */
+
+.liquid-chrome-image {
+  filter: blur(var(--liquid-blur, 22px)) grayscale(1) contrast(1.35);
+  will-change: transform;
+}
+
+@media (max-width: 639px) {
+  .glass-panel {
+    backdrop-filter: blur(10px) saturate(112%);
+    -webkit-backdrop-filter: blur(10px) saturate(112%);
+  }
+
+  .liquid-chrome-image {
+    filter: blur(13px) grayscale(1) contrast(1.32);
+    animation: none !important;
+    will-change: auto;
+  }
+
+  .grain-overlay {
+    opacity: 0.1;
+  }
+
+  .reveal {
+    transition-duration: 900ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-chrome-image,
+  .animate-float-slow,
+  .animate-drift,
+  .animate-marquee {
+    animation: none !important;
+  }
+
+  .reveal {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+}

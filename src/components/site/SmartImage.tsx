@@ -30,7 +30,8 @@ export function SmartImage({
   const { data: signed } = useQuery({
     queryKey: ["storage-image", path],
     enabled: !!path,
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 50,
+    gcTime: 1000 * 60 * 60,
     queryFn: async () => {
       const { data } = await supabase.storage
         .from("product-images")
@@ -52,6 +53,8 @@ export function SmartImage({
       width={width}
       height={height}
       loading={eager ? "eager" : "lazy"}
+      fetchPriority={eager ? "high" : "auto"}
+      decoding="async"
       className={className}
     />
   );
