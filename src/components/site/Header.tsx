@@ -14,11 +14,11 @@ import { SmartImage } from "./SmartImage";
 import { matchesSearch, useProducts } from "@/lib/products";
 import { useCart, useWishlist } from "@/lib/commerce";
 import { useSite } from "@/lib/settings";
+import { useCommerceAvailability } from "@/lib/commerce-availability";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+const BASE_NAV = [
   { label: "SHOP", to: "/shop" as const },
-  { label: "SHOP THE LOOK", to: "/shop-the-look" as const },
   { label: "NEW COLLECTION", to: "/collection" as const },
   { label: "ARCHIVE", to: "/archive" as const },
   { label: "ABOUT", to: "/about" as const },
@@ -30,10 +30,12 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
+
   const { data: products = [] } = useProducts(searchOpen);
   const site = useSite();
   const wishlist = useWishlist();
   const cart = useCart();
+  const { hasShopLooks, hasBundles } = useCommerceAvailability();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -41,6 +43,14 @@ export function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const nav = [
+    BASE_NAV[0],
+    ...(hasShopLooks
+      ? [{ label: "SHOP THE LOOK", to: "/shop-the-look" as const }]
+      : []),
+    ...BASE_NAV.slice(1),
+  ];
 
   const results = products.filter((product) => matchesSearch(product, q));
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -65,7 +75,7 @@ export function Header() {
           </Link>
 
           <nav className="mx-auto hidden items-center gap-6 xl:flex">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.label}
                 to={item.to}
@@ -137,8 +147,9 @@ export function Header() {
           <div className="mx-auto flex h-full max-w-3xl flex-col px-5 pt-28 sm:px-8">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
-                SEARCH THE ARCHIVE
+                SEARCH OBJECTS
               </span>
+
               <button
                 type="button"
                 aria-label="Close search"
@@ -217,7 +228,7 @@ export function Header() {
             </button>
 
             <nav className="mt-10 flex flex-col gap-6 overflow-y-auto pb-8">
-              {NAV.map((item) => (
+              {nav.map((item) => (
                 <Link
                   key={item.label}
                   to={item.to}
@@ -227,13 +238,17 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
-              <Link
-                to="/bundles"
-                onClick={() => setMenuOpen(false)}
-                className="font-display text-lg tracking-[0.25em] text-foreground sm:text-xl"
-              >
-                BUNDLES
-              </Link>
+
+              {hasBundles && (
+                <Link
+                  to="/bundles"
+                  onClick={() => setMenuOpen(false)}
+                  className="font-display text-lg tracking-[0.25em] text-foreground sm:text-xl"
+                >
+                  BUNDLES
+                </Link>
+              )}
+
               <Link
                 to="/wishlist"
                 onClick={() => setMenuOpen(false)}
@@ -241,6 +256,7 @@ export function Header() {
               >
                 WISHLIST
               </Link>
+
               <Link
                 to="/account"
                 onClick={() => setMenuOpen(false)}
