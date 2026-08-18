@@ -1,25 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { usePages, type Page } from "@/lib/cms";
+import {
+  adminCollectionsQuery,
+  usePages,
+  type Page,
+} from "@/lib/cms";
+import { useAdminProducts, useAllCategories } from "@/lib/products";
 import { ImageUploader } from "@/components/admin/ImageUploader";
-import { AdminButton, Field, Toggle, adminField } from "@/components/admin/AdminUI";
+import {
+  AdminButton,
+  Field,
+  Toggle,
+  adminField,
+} from "@/components/admin/AdminUI";
 
 export const Route = createFileRoute("/_authenticated/admin/pages")({
   component: AdminPages,
 });
 
+type HomeSectionType =
+  | "promo"
+  | "offer"
+  | "editorial"
+  | "announcement"
+  | "shop-look"
+  | "shop-teaser"
+  | "featured-products"
+  | "collection"
+  | "cta";
+
 type HomeSection = {
   id: string;
-  type: "promo" | "offer" | "editorial" | "announcement" | "shop-look" | "cta";
+  type: HomeSectionType;
   enabled: boolean;
   title: string;
   body: string;
   image: string;
   button_label: string;
   button_href: string;
+  product_ids: string[];
+  category_slug: string;
+  collection_id: string;
+  starts_at: string;
+  ends_at: string;
 };
 
 type HomeJson = {
@@ -34,7 +60,7 @@ type HomeJson = {
   about_title?: string;
   about_body?: string;
   archive_images?: string[];
-  sections?: HomeSection[];
+  sections?: Partial<HomeSection>[];
 };
 
 type AboutJson = {
@@ -80,19 +106,35 @@ type Form = {
   sections: HomeSection[];
 };
 
-function fromPage(p: Page): Form {
-  const json = (p.content_json ?? {}) as AboutJson & ShopJson & HomeJson;
+const normalizeSection = (section: Partial<HomeSection>): HomeSection => ({
+  id: section.id || crypto.randomUUID(),
+  type: section.type || "promo",
+  enabled: section.enabled ?? true,
+  title: section.title ?? "",
+  body: section.body ?? "",
+  image: section.image ?? "",
+  button_label: section.button_label ?? "",
+  button_href: section.button_href ?? "",
+  product_ids: section.product_ids ?? [],
+  category_slug: section.category_slug ?? "",
+  collection_id: section.collection_id ?? "",
+  starts_at: section.starts_at ?? "",
+  ends_at: section.ends_at ?? "",
+});
+
+function fromPage(page: Page): Form {
+  const json = (page.content_json ?? {}) as AboutJson & ShopJson & HomeJson;
 
   return {
-    id: p.id,
-    page_key: p.page_key,
-    label: p.label,
-    title: p.title,
-    subtitle: p.subtitle,
-    body: p.body,
-    hero_image: p.hero_image,
-    seo_title: p.seo_title,
-    seo_description: p.seo_description,
+    id: page.id,
+    page_key: page.page_key,
+    label: page.label,
+    title: page.title,
+    subtitle: page.subtitle,
+    body: page.body,
+    hero_image: page.hero_image,
+    seo_title: page.seo_title,
+    seo_description: page.seo_description,
 
     statement: json.statement ?? "",
     tagline: json.tagline ?? "",
@@ -101,42 +143,90 @@ function fromPage(p: Page): Form {
     show_filters: json.show_filters ?? true,
     per_section: String(json.per_section ?? 100),
 
-    hero_eyebrow: json.hero_eyebrow ?? "Unisex / Chrome / Vintage / Underground",
+    hero_eyebrow:
+      json.hero_eyebrow ?? "Unisex / Chrome / Vintage / Underground",
     hero_cta_label: json.hero_cta_label ?? "",
     hero_cta_href: json.hero_cta_href ?? "",
     show_current_drop: json.show_current_drop ?? true,
     show_featured: json.show_featured ?? true,
     show_categories: json.show_categories ?? true,
+
     statement_title: json.statement_title ?? "NOT MADE\nTO BLEND IN.",
     statement_body:
       json.statement_body ??
       "ZZERKOFF explores metal, distortion, vintage forms and underground culture through unisex accessories.",
+
     about_title: json.about_title ?? "THIS IS ZZERKOFF.",
     about_body:
       json.about_body ??
       "Zzerkoff is a unisex accessories label inspired by vintage metal, chrome, gothic fashion, Y2K and underground street culture.\n\nCreated for people who prefer bold identities over ordinary trends.\n\nFor those who don't blend in.",
+
     archive_images: json.archive_images ?? [],
-    sections: json.sections ?? [],
+    sections: (json.sections ?? []).map(normalizeSection),
   };
 }
 
+const newSection = (): HomeSection => ({
+  id: crypto.randomUUID(),
+  type: "promo",
+  enabled: true,
+  title: "NEW SECTION",
+  body: "",
+  image: "",
+  button_label: "",
+  button_href: "",
+  product_ids: [],
+  category_slug: "",
+  collection_id: "",
+  starts_at: "",
+  ends_at: "",
+});
+
 function AdminPages() {
   const { data: pages = [], isLoading } = usePages();
+  const { data: products = [] } = useAdminProducts();
+  const { data: categories = [] } = useAllCategories();
+  const { data: collections = [] } = useQuery(adminCollectionsQuery);
+
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Form | null>(null);
   const [dirty, setDirty] = useState(false);
 
   const currentPage = useMemo(
-    () => pages.find((p) => p.id === form?.id) ?? null,
+    () => pages.find((page) => page.id === form?.id) ?? null,
     [pages, form?.id],
   );
 
+  const activeCategoryChoices = useMemo(
+    () => categories.filter((category) => category.active),
+    [categories],
+  );
+
+  const publicProductChoices = useMemo(() => {
+    const activeSlugs = new Set(
+      activeCategoryChoices.map((category) => category.slug),
+    );
+
+    return products.filter(
+      (product) =>
+        product.published &&
+        !product.archived &&
+        activeSlugs.has(product.category),
+    );
+  }, [products, activeCategoryChoices]);
+
+  const publishedCollectionChoices = useMemo(
+    () => collections.filter((collection) => collection.published),
+    [collections],
+  );
+
   useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!dirty) return;
-      e.preventDefault();
-      e.returnValue = "";
+      event.preventDefault();
+      event.returnValue = "";
     };
+
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
@@ -149,6 +239,7 @@ function AdminPages() {
 
   const patchSection = (id: string, values: Partial<HomeSection>) => {
     if (!form) return;
+
     setDirty(true);
     setForm({
       ...form,
@@ -160,12 +251,28 @@ function AdminPages() {
 
   const moveSection = (index: number, direction: -1 | 1) => {
     if (!form) return;
+
     const target = index + direction;
     if (target < 0 || target >= form.sections.length) return;
+
     const next = [...form.sections];
     [next[index], next[target]] = [next[target], next[index]];
+
     setDirty(true);
     setForm({ ...form, sections: next });
+  };
+
+  const toggleSectionProduct = (sectionId: string, productId: string) => {
+    if (!form) return;
+
+    const section = form.sections.find((item) => item.id === sectionId);
+    if (!section) return;
+
+    const next = section.product_ids.includes(productId)
+      ? section.product_ids.filter((id) => id !== productId)
+      : [...section.product_ids, productId].slice(0, 8);
+
+    patchSection(sectionId, { product_ids: next });
   };
 
   const save = useMutation({
@@ -191,6 +298,7 @@ function AdminPages() {
           show_filters: form.show_filters,
           per_section: Math.max(1, Number(form.per_section || 100)),
         };
+
         delete content_json.show_categories;
       }
 
@@ -228,11 +336,13 @@ function AdminPages() {
 
       if (error) throw error;
     },
+
     onSuccess: () => {
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       toast.success("Page updated successfully.");
     },
+
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : "Could not save page"),
   });
@@ -255,24 +365,24 @@ function AdminPages() {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {pages.map((p) => (
+        {pages.map((page) => (
           <button
-            key={p.id}
+            key={page.id}
             type="button"
             onClick={() => {
               if (dirty && !confirm("Discard unsaved page changes?")) return;
-              setForm(fromPage(p));
+              setForm(fromPage(page));
               setDirty(false);
             }}
             className={`glass-panel rounded-[20px] p-5 text-left ${
-              form?.id === p.id ? "border-chrome/70" : ""
+              form?.id === page.id ? "border-chrome/70" : ""
             }`}
           >
             <span className="text-[8px] uppercase tracking-[0.35em] text-muted-foreground">
-              {p.page_key}
+              {page.page_key}
             </span>
             <p className="mt-3 font-display text-sm tracking-[0.18em] text-foreground">
-              {p.title || p.page_key.toUpperCase()}
+              {page.title || page.page_key.toUpperCase()}
             </p>
             <span className="mt-4 block text-[8px] uppercase tracking-[0.3em] text-chrome">
               Edit →
@@ -298,14 +408,15 @@ function AdminPages() {
                 <input
                   className={adminField}
                   value={form.label}
-                  onChange={(e) => set("label", e.target.value)}
+                  onChange={(event) => set("label", event.target.value)}
                 />
               </Field>
+
               <Field label="Main title">
                 <input
                   className={adminField}
                   value={form.title}
-                  onChange={(e) => set("title", e.target.value)}
+                  onChange={(event) => set("title", event.target.value)}
                 />
               </Field>
             </div>
@@ -315,7 +426,7 @@ function AdminPages() {
                 className={adminField}
                 rows={3}
                 value={form.subtitle}
-                onChange={(e) => set("subtitle", e.target.value)}
+                onChange={(event) => set("subtitle", event.target.value)}
               />
             </Field>
 
@@ -324,7 +435,7 @@ function AdminPages() {
                 className={adminField}
                 rows={7}
                 value={form.body}
-                onChange={(e) => set("body", e.target.value)}
+                onChange={(event) => set("body", event.target.value)}
               />
             </Field>
           </div>
@@ -334,7 +445,7 @@ function AdminPages() {
               label="Hero / decorative image"
               max={1}
               value={form.hero_image ? [form.hero_image] : []}
-              onChange={(v) => set("hero_image", v[0] ?? "")}
+              onChange={(value) => set("hero_image", value[0] ?? "")}
             />
 
             {form.page_key === "about" && (
@@ -344,21 +455,23 @@ function AdminPages() {
                     className={adminField}
                     rows={3}
                     value={form.statement}
-                    onChange={(e) => set("statement", e.target.value)}
+                    onChange={(event) => set("statement", event.target.value)}
                   />
                 </Field>
+
                 <Field label="Tagline">
                   <input
                     className={adminField}
                     value={form.tagline}
-                    onChange={(e) => set("tagline", e.target.value)}
+                    onChange={(event) => set("tagline", event.target.value)}
                   />
                 </Field>
+
                 <ImageUploader
                   label="Campaign images"
                   max={6}
                   value={form.campaign_images}
-                  onChange={(v) => set("campaign_images", v)}
+                  onChange={(value) => set("campaign_images", value)}
                 />
               </>
             )}
@@ -368,8 +481,9 @@ function AdminPages() {
                 <Toggle
                   label="Show filters"
                   checked={form.show_filters}
-                  onChange={(v) => set("show_filters", v)}
+                  onChange={(value) => set("show_filters", value)}
                 />
+
                 <Field label="Products per section">
                   <input
                     className={adminField}
@@ -377,7 +491,7 @@ function AdminPages() {
                     min={1}
                     max={100}
                     value={form.per_section}
-                    onChange={(e) => set("per_section", e.target.value)}
+                    onChange={(event) => set("per_section", event.target.value)}
                   />
                 </Field>
               </div>
@@ -390,21 +504,29 @@ function AdminPages() {
                     <input
                       className={adminField}
                       value={form.hero_eyebrow}
-                      onChange={(e) => set("hero_eyebrow", e.target.value)}
+                      onChange={(event) =>
+                        set("hero_eyebrow", event.target.value)
+                      }
                     />
                   </Field>
+
                   <Field label="Hero CTA label (optional)">
                     <input
                       className={adminField}
                       value={form.hero_cta_label}
-                      onChange={(e) => set("hero_cta_label", e.target.value)}
+                      onChange={(event) =>
+                        set("hero_cta_label", event.target.value)
+                      }
                     />
                   </Field>
+
                   <Field label="Hero CTA URL (optional)">
                     <input
                       className={adminField}
                       value={form.hero_cta_href}
-                      onChange={(e) => set("hero_cta_href", e.target.value)}
+                      onChange={(event) =>
+                        set("hero_cta_href", event.target.value)
+                      }
                       placeholder="/shop"
                     />
                   </Field>
@@ -414,17 +536,17 @@ function AdminPages() {
                   <Toggle
                     label="Current drop"
                     checked={form.show_current_drop}
-                    onChange={(v) => set("show_current_drop", v)}
+                    onChange={(value) => set("show_current_drop", value)}
                   />
                   <Toggle
                     label="Featured"
                     checked={form.show_featured}
-                    onChange={(v) => set("show_featured", v)}
+                    onChange={(value) => set("show_featured", value)}
                   />
                   <Toggle
                     label="Shop by object"
                     checked={form.show_categories}
-                    onChange={(v) => set("show_categories", v)}
+                    onChange={(value) => set("show_categories", value)}
                   />
                 </div>
 
@@ -433,30 +555,37 @@ function AdminPages() {
                     className={adminField}
                     rows={2}
                     value={form.statement_title}
-                    onChange={(e) => set("statement_title", e.target.value)}
+                    onChange={(event) =>
+                      set("statement_title", event.target.value)
+                    }
                   />
                 </Field>
+
                 <Field label="Statement body">
                   <textarea
                     className={adminField}
                     rows={4}
                     value={form.statement_body}
-                    onChange={(e) => set("statement_body", e.target.value)}
+                    onChange={(event) =>
+                      set("statement_body", event.target.value)
+                    }
                   />
                 </Field>
+
                 <Field label="About title">
                   <input
                     className={adminField}
                     value={form.about_title}
-                    onChange={(e) => set("about_title", e.target.value)}
+                    onChange={(event) => set("about_title", event.target.value)}
                   />
                 </Field>
+
                 <Field label="About body">
                   <textarea
                     className={adminField}
                     rows={6}
                     value={form.about_body}
-                    onChange={(e) => set("about_body", e.target.value)}
+                    onChange={(event) => set("about_body", event.target.value)}
                   />
                 </Field>
 
@@ -464,29 +593,23 @@ function AdminPages() {
                   label="Home archive/editorial images"
                   max={3}
                   value={form.archive_images}
-                  onChange={(v) => set("archive_images", v)}
+                  onChange={(value) => set("archive_images", value)}
                 />
 
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="font-display text-sm tracking-[0.22em] text-foreground">
-                      CUSTOM HOME SECTIONS
-                    </h3>
+                    <div>
+                      <h3 className="font-display text-sm tracking-[0.22em] text-foreground">
+                        CUSTOM HOME SECTIONS
+                      </h3>
+                      <p className="mt-2 text-[9px] text-muted-foreground">
+                        Add, schedule, select products/categories/collections and reorder.
+                      </p>
+                    </div>
+
                     <AdminButton
                       onClick={() =>
-                        set("sections", [
-                          ...form.sections,
-                          {
-                            id: crypto.randomUUID(),
-                            type: "promo",
-                            enabled: true,
-                            title: "NEW SECTION",
-                            body: "",
-                            image: "",
-                            button_label: "",
-                            button_href: "",
-                          },
-                        ])
+                        set("sections", [...form.sections, newSection()])
                       }
                     >
                       + Add section
@@ -496,7 +619,7 @@ function AdminPages() {
                   {form.sections.map((section, index) => (
                     <div
                       key={section.id}
-                      className="space-y-4 rounded-2xl border border-border/50 p-4"
+                      className="space-y-5 rounded-2xl border border-border/50 p-4"
                     >
                       <div className="flex flex-wrap gap-2">
                         <Toggle
@@ -506,24 +629,29 @@ function AdminPages() {
                             patchSection(section.id, { enabled: value })
                           }
                         />
+
                         <AdminButton
                           disabled={index === 0}
                           onClick={() => moveSection(index, -1)}
                         >
                           ↑
                         </AdminButton>
+
                         <AdminButton
                           disabled={index === form.sections.length - 1}
                           onClick={() => moveSection(index, 1)}
                         >
                           ↓
                         </AdminButton>
+
                         <AdminButton
                           tone="danger"
                           onClick={() =>
                             set(
                               "sections",
-                              form.sections.filter((item) => item.id !== section.id),
+                              form.sections.filter(
+                                (item) => item.id !== section.id,
+                              ),
                             )
                           }
                         >
@@ -535,9 +663,9 @@ function AdminPages() {
                         <select
                           className={adminField}
                           value={section.type}
-                          onChange={(e) =>
+                          onChange={(event) =>
                             patchSection(section.id, {
-                              type: e.target.value as HomeSection["type"],
+                              type: event.target.value as HomeSectionType,
                             })
                           }
                         >
@@ -546,6 +674,9 @@ function AdminPages() {
                           <option value="editorial">IMAGE + TEXT</option>
                           <option value="announcement">ANNOUNCEMENT</option>
                           <option value="shop-look">SHOP THE LOOK</option>
+                          <option value="shop-teaser">SHOP TEASER</option>
+                          <option value="featured-products">FEATURED PRODUCTS</option>
+                          <option value="collection">COLLECTION PROMO</option>
                           <option value="cta">CUSTOM CTA</option>
                         </select>
                       </Field>
@@ -554,53 +685,180 @@ function AdminPages() {
                         <input
                           className={adminField}
                           value={section.title}
-                          onChange={(e) =>
-                            patchSection(section.id, { title: e.target.value })
+                          onChange={(event) =>
+                            patchSection(section.id, {
+                              title: event.target.value,
+                            })
                           }
                         />
                       </Field>
+
                       <Field label="Body">
                         <textarea
                           className={adminField}
                           rows={3}
                           value={section.body}
-                          onChange={(e) =>
-                            patchSection(section.id, { body: e.target.value })
+                          onChange={(event) =>
+                            patchSection(section.id, {
+                              body: event.target.value,
+                            })
                           }
                         />
                       </Field>
+
                       <ImageUploader
                         label="Section image"
                         max={1}
                         value={section.image ? [section.image] : []}
                         onChange={(next) =>
-                          patchSection(section.id, { image: next[0] ?? "" })
+                          patchSection(section.id, {
+                            image: next[0] ?? "",
+                          })
                         }
                       />
+
                       <div className="grid gap-4 sm:grid-cols-2">
                         <Field label="Button label">
                           <input
                             className={adminField}
                             value={section.button_label}
-                            onChange={(e) =>
+                            onChange={(event) =>
                               patchSection(section.id, {
-                                button_label: e.target.value,
+                                button_label: event.target.value,
                               })
                             }
                           />
                         </Field>
+
                         <Field label="Button URL">
                           <input
                             className={adminField}
                             value={section.button_href}
-                            onChange={(e) =>
+                            onChange={(event) =>
                               patchSection(section.id, {
-                                button_href: e.target.value,
+                                button_href: event.target.value,
                               })
                             }
                             placeholder="/shop"
                           />
                         </Field>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Category (optional)">
+                          <select
+                            className={adminField}
+                            value={section.category_slug}
+                            onChange={(event) =>
+                              patchSection(section.id, {
+                                category_slug: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">NO CATEGORY</option>
+                            {activeCategoryChoices.map((category) => (
+                              <option key={category.slug} value={category.slug}>
+                                {category.name}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+
+                        <Field label="Collection (optional)">
+                          <select
+                            className={adminField}
+                            value={section.collection_id}
+                            onChange={(event) =>
+                              patchSection(section.id, {
+                                collection_id: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">NO COLLECTION</option>
+                            {publishedCollectionChoices.map((collection) => (
+                              <option key={collection.id} value={collection.id}>
+                                DROP{" "}
+                                {String(collection.drop_number).padStart(
+                                  3,
+                                  "0",
+                                )}{" "}
+                                — {collection.name}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Starts at (optional)">
+                          <input
+                            className={adminField}
+                            type="datetime-local"
+                            value={section.starts_at}
+                            onChange={(event) =>
+                              patchSection(section.id, {
+                                starts_at: event.target.value,
+                              })
+                            }
+                          />
+                        </Field>
+
+                        <Field label="Ends at (optional)">
+                          <input
+                            className={adminField}
+                            type="datetime-local"
+                            value={section.ends_at}
+                            onChange={(event) =>
+                              patchSection(section.id, {
+                                ends_at: event.target.value,
+                              })
+                            }
+                          />
+                        </Field>
+                      </div>
+
+                      <div>
+                        <span className="mb-3 block text-[9px] uppercase tracking-[0.35em] text-muted-foreground">
+                          Selected products ({section.product_ids.length}/8)
+                        </span>
+
+                        {publicProductChoices.length === 0 ? (
+                          <p className="text-[9px] text-muted-foreground">
+                            No published active objects available.
+                          </p>
+                        ) : (
+                          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {publicProductChoices.map((product) => {
+                              const selected =
+                                section.product_ids.includes(product.id);
+
+                              return (
+                                <button
+                                  key={product.id}
+                                  type="button"
+                                  onClick={() =>
+                                    toggleSectionProduct(
+                                      section.id,
+                                      product.id,
+                                    )
+                                  }
+                                  className={`rounded-xl border p-3 text-left ${
+                                    selected
+                                      ? "border-chrome/70 bg-white/[0.05]"
+                                      : "border-border/50"
+                                  }`}
+                                >
+                                  <span className="block text-[8px] tracking-[0.28em] text-muted-foreground">
+                                    {product.product_code}
+                                  </span>
+                                  <span className="mt-1 block truncate text-[9px] uppercase tracking-[0.18em] text-foreground">
+                                    {product.name}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -613,19 +871,23 @@ function AdminPages() {
             <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
               SEO & META
             </h2>
+
             <Field label="SEO title">
               <input
                 className={adminField}
                 value={form.seo_title}
-                onChange={(e) => set("seo_title", e.target.value)}
+                onChange={(event) => set("seo_title", event.target.value)}
               />
             </Field>
+
             <Field label="SEO description">
               <textarea
                 className={adminField}
                 rows={3}
                 value={form.seo_description}
-                onChange={(e) => set("seo_description", e.target.value)}
+                onChange={(event) =>
+                  set("seo_description", event.target.value)
+                }
               />
             </Field>
           </div>
