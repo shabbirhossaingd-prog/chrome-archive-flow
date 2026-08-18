@@ -233,3 +233,71 @@
     transform: none;
   }
 }
+/* =========================================================
+   ZZERKOFF — PUBLIC PAGE ATMOSPHERE
+   Homepage is NOT affected.
+   Static CSS gradients only — mobile performance friendly.
+   ========================================================= */
+
+.page-atmosphere {
+  background-color: #050505;
+
+  background-image:
+    radial-gradient(
+      72rem 50rem at -18% 14%,
+      rgba(205, 208, 216, 0.095) 0%,
+      rgba(135, 140, 150, 0.038) 38%,
+      rgba(5, 5, 5, 0) 72%
+    ),
+    radial-gradient(
+      64rem 48rem at 112% 48%,
+      rgba(185, 190, 200, 0.075) 0%,
+      rgba(105, 110, 120, 0.03) 42%,
+      rgba(5, 5, 5, 0) 74%
+    ),
+    radial-gradient(
+      78rem 38rem at 28% 108%,
+      rgba(150, 155, 165, 0.045) 0%,
+      rgba(90, 95, 105, 0.018) 45%,
+      rgba(5, 5, 5, 0) 76%
+    );
+
+  background-repeat: no-repeat;
+}
+
+/*
+ * Mobile:
+ * fewer layers + lower opacity.
+ * No blur filter.
+ * No animation.
+ * No backdrop-filter.
+ * No image asset.
+ */
+@media (max-width: 639px) {
+  .page-atmosphere {
+    background-color: #050505;
+
+    background-image:
+      radial-gradient(
+        34rem 28rem at -38% 16%,
+        rgba(205, 208, 216, 0.085) 0%,
+        rgba(125, 130, 140, 0.032) 40%,
+        rgba(5, 5, 5, 0) 73%
+      ),
+      radial-gradient(
+        32rem 29rem at 138% 60%,
+        rgba(175, 180, 190, 0.065) 0%,
+        rgba(100, 105, 115, 0.024) 42%,
+        rgba(5, 5, 5, 0) 74%
+      );
+
+    background-repeat: no-repeat;
+  }
+}
+
+/* Extra-low-power / reduced motion devices stay completely static. */
+@media (prefers-reduced-motion: reduce) {
+  .page-atmosphere {
+    background-attachment: scroll;
+  }
+}
