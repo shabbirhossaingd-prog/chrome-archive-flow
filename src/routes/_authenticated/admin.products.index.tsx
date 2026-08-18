@@ -3,7 +3,13 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminProducts, isSoldOut, prettyCategory, type Product } from "@/lib/products";
+import {
+  useAdminProducts,
+  useAllCategories,
+  isSoldOut,
+  prettyCategory,
+  type Product,
+} from "@/lib/products";
 import { useSite } from "@/lib/settings";
 import { SmartImage } from "@/components/site/SmartImage";
 import { AdminButton, adminField } from "@/components/admin/AdminUI";
@@ -12,14 +18,8 @@ export const Route = createFileRoute("/_authenticated/admin/products/")({
   component: AdminProducts,
 });
 
-const FILTERS = [
+const STATUS_FILTERS = [
   "ALL",
-  "RINGS",
-  "BRACELETS",
-  "CHAINS",
-  "PANT CHAINS",
-  "EARRINGS",
-  "EYEWEAR",
   "IN STOCK",
   "LOW STOCK",
   "SOLD OUT",
@@ -32,10 +32,19 @@ const FILTERS = [
 
 function AdminProducts() {
   const { data: products = [], isLoading } = useAdminProducts();
+  const { data: categories = [] } = useAllCategories();
   const { price } = useSite();
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("ALL");
+  const [filter, setFilter] = useState("ALL");
+
+  const filters = useMemo(
+    () => [
+      ...STATUS_FILTERS,
+      ...categories.map((category) => category.name.toUpperCase()),
+    ],
+    [categories],
+  );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
@@ -65,6 +74,7 @@ function AdminProducts() {
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
+
     return products.filter((p) => {
       const searchOk =
         !needle ||
@@ -100,12 +110,20 @@ function AdminProducts() {
             OBJECTS
           </h1>
         </div>
-        <Link
-          to="/admin/products/new"
-          className="rounded-xl border border-chrome/60 bg-white/[0.05] px-5 py-3 text-[9px] uppercase tracking-[0.35em] text-foreground hover:bg-white/[0.1]"
-        >
-          + New object
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/admin/categories"
+            className="rounded-xl border border-border/60 px-5 py-3 text-[9px] uppercase tracking-[0.35em] text-muted-foreground hover:text-foreground"
+          >
+            Categories
+          </Link>
+          <Link
+            to="/admin/products/new"
+            className="rounded-xl border border-chrome/60 bg-white/[0.05] px-5 py-3 text-[9px] uppercase tracking-[0.35em] text-foreground hover:bg-white/[0.1]"
+          >
+            + New object
+          </Link>
+        </div>
       </div>
 
       <div className="glass-panel space-y-4 rounded-[22px] p-4">
@@ -116,7 +134,7 @@ function AdminProducts() {
           placeholder="SEARCH NAME OR PRODUCT CODE"
         />
         <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f}
               type="button"
@@ -178,9 +196,9 @@ function AdminProducts() {
               </p>
               <p className="mt-1 text-[8px] uppercase tracking-[0.25em] text-muted-foreground">
                 {p.published ? "PUBLISHED" : "DRAFT"}
+                {p.archived ? " · ARCHIVED" : " · ACTIVE"}
                 {p.featured ? " · FEATURED" : ""}
                 {p.new_collection ? " · NEW COLLECTION" : ""}
-                {p.archived ? " · ARCHIVED" : ""}
               </p>
             </div>
 
