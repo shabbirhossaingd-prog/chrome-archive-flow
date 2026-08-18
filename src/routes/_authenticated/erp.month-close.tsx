@@ -144,20 +144,20 @@ function ErpMonthClose() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <ErpMetric
               label="Sales"
-              value={money(metrics?["gross_sales"] ?? 0, site.currencySymbol)}
+              value={money(metrics?.["gross_sales"] ?? 0, site.currencySymbol)}
             />
             <ErpMetric
               label="Net profit"
-              value={money(metrics?["net_profit"] ?? 0, site.currencySymbol)}
+              value={money(metrics?.["net_profit"] ?? 0, site.currencySymbol)}
               emphasis
             />
             <ErpMetric
               label="Expenses"
-              value={money(metrics?["operating_expenses"] ?? 0, site.currencySymbol)}
+              value={money(metrics?.["operating_expenses"] ?? 0, site.currencySymbol)}
             />
             <ErpMetric
               label="Stock value"
-              value={money(metrics?["stock_value"] ?? 0, site.currencySymbol)}
+              value={money(metrics?.["stock_value"] ?? 0, site.currencySymbol)}
             />
           </div>
 
