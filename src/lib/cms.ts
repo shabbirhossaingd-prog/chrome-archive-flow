@@ -6,7 +6,7 @@ export type Collection = Database["public"]["Tables"]["collections"]["Row"];
 export type Page = Database["public"]["Tables"]["pages"]["Row"];
 export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
 
-export type PageKey = "shop" | "collection" | "archive" | "about";
+export type PageKey = "home" | "shop" | "collection" | "archive" | "about";
 
 /* ---------------- PAGES ---------------- */
 
@@ -23,7 +23,6 @@ export function usePages() {
   return useQuery(pagesQuery);
 }
 
-/** One editable public page by key, with the whole list cached once. */
 export function usePage(key: PageKey) {
   const q = useQuery(pagesQuery);
   return { ...q, page: (q.data ?? []).find((p) => p.page_key === key) ?? null };
@@ -144,8 +143,6 @@ export function postBySlugQuery(slug: string) {
     },
   });
 }
-
-/* ---------------- SHARED HELPERS ---------------- */
 
 export const slugify = (s: string) =>
   s
