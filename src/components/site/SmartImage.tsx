@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const PREFIX = "storage:";
 export const toStorageRef = (path: string) => `${PREFIX}${path}`;
 
-function resolveImageUrl(src: string | null | undefined) {
+export function resolveSmartImageUrl(src: string | null | undefined) {
   if (!src) return "";
   if (!src.startsWith(PREFIX)) return src;
 
@@ -14,6 +14,16 @@ function resolveImageUrl(src: string | null | undefined) {
 
   const { data } = supabase.storage.from("product-images").getPublicUrl(path);
   return data.publicUrl ?? "";
+}
+
+export function absoluteSmartImageUrl(
+  src: string | null | undefined,
+  origin = "https://zzerkoff.vercel.app",
+) {
+  const resolved = resolveSmartImageUrl(src);
+  if (!resolved) return `${origin}/images/zzerkoff-logo.png`;
+  if (/^https?:\/\//i.test(resolved)) return resolved;
+  return `${origin}${resolved.startsWith("/") ? "" : "/"}${resolved}`;
 }
 
 export function SmartImage({
@@ -31,7 +41,7 @@ export function SmartImage({
   height?: number;
   eager?: boolean;
 }) {
-  const resolved = useMemo(() => resolveImageUrl(src), [src]);
+  const resolved = useMemo(() => resolveSmartImageUrl(src), [src]);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
