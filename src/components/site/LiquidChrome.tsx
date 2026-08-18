@@ -34,9 +34,10 @@ export function LiquidChrome({
             opacity,
             "--liquid-blur": `${blur}px`,
             transform: flip ? "scaleX(-1)" : undefined,
-            maskImage: "radial-gradient(closest-side, #000 45%, transparent 100%)",
+            maskImage:
+              "radial-gradient(closest-side, #000 18%, rgba(0,0,0,0.45) 55%, transparent 92%)",
             WebkitMaskImage:
-              "radial-gradient(closest-side, #000 45%, transparent 100%)",
+              "radial-gradient(closest-side, #000 18%, rgba(0,0,0,0.45) 55%, transparent 92%)",
             mixBlendMode: "screen",
           } as CSSProperties
         }
