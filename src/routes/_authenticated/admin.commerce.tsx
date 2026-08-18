@@ -187,22 +187,47 @@ function AdminCommerce() {
 
   const createPromo = useMutation({
     mutationFn: async () => {
-      if (!promoCode.trim()) throw new Error("Enter a promo code.");
-      if (promoValue === "" || Number(promoValue) < 0) {
-        throw new Error("Enter a valid discount.");
+      const code = promoCode.trim().toUpperCase();
+      const discountValue = Number(promoValue);
+      const minimumOrder = Number(promoMin || 0);
+      const maxUses = promoMaxUses ? Number(promoMaxUses) : null;
+
+      if (!code) throw new Error("Enter a promo code.");
+      if (!/^[A-Z0-9_-]{2,32}$/.test(code)) {
+        throw new Error("Use 2–32 letters, numbers, - or _ for the promo code.");
       }
+      if (!Number.isFinite(discountValue) || discountValue <= 0) {
+        throw new Error("Discount must be greater than 0.");
+      }
+      if (promoType === "percent" && discountValue > 100) {
+        throw new Error("Percentage discount cannot be more than 100%.");
+      }
+      if (!Number.isFinite(minimumOrder) || minimumOrder < 0) {
+        throw new Error("Minimum order must be 0 or more.");
+      }
+      if (
+        maxUses !== null &&
+        (!Number.isInteger(maxUses) || maxUses < 1)
+      ) {
+        throw new Error("Max uses must be a whole number of 1 or more.");
+      }
+
       const { error } = await (supabase as any).from("commerce_promos").insert({
-        code: promoCode.trim().toUpperCase(),
+        code,
         discount_type: promoType,
-        discount_value: Number(promoValue),
-        min_order_amount: Number(promoMin || 0),
-        max_uses: promoMaxUses ? Number(promoMaxUses) : null,
+        discount_value: discountValue,
+        min_order_amount: minimumOrder,
+        max_uses: maxUses,
         active: true,
       });
+
+      if (error?.code === "23505") {
+        throw new Error("This promo code already exists.");
+      }
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Promo created.");
+      toast.success("Promo created and ready to use.");
       setPromoCode("");
       setPromoValue("");
       setPromoMin("0");
