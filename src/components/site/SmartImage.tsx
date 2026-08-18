@@ -1,14 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const PREFIX = "storage:";
 export const toStorageRef = (path: string) => `${PREFIX}${path}`;
 
-/**
- * Renders a product image. Accepts either a normal URL/path or a
- * "storage:<path>" reference for images uploaded through the admin dashboard.
- */
+function resolveImageUrl(src: string | null | undefined) {
+  if (!src) return "";
+  if (!src.startsWith(PREFIX)) return src;
+
+  const path = src.slice(PREFIX.length);
+  if (!path) return "";
+
+  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+  return data.publicUrl ?? "";
+}
+
 export function SmartImage({
   src,
   alt,
@@ -24,37 +31,40 @@ export function SmartImage({
   height?: number;
   eager?: boolean;
 }) {
-  const isStorage = !!src && src.startsWith(PREFIX);
-  const path = isStorage ? src!.slice(PREFIX.length) : null;
+  const resolved = useMemo(() => resolveImageUrl(src), [src]);
+  const [failed, setFailed] = useState(false);
 
-  const { data: signed } = useQuery({
-    queryKey: ["storage-image", path],
-    enabled: !!path,
-    staleTime: 1000 * 60 * 50,
-    gcTime: 1000 * 60 * 60,
-    queryFn: async () => {
-      const { data } = await supabase.storage
-        .from("product-images")
-        .createSignedUrl(path!, 60 * 60);
-      return data?.signedUrl ?? "";
-    },
-  });
+  useEffect(() => {
+    setFailed(false);
+  }, [resolved]);
 
-  const url = isStorage ? signed : src;
-
-  if (!url) {
-    return <div className={cn("bg-white/[0.03]", className)} aria-hidden />;
+  if (!resolved || failed) {
+    return (
+      <div
+        className={cn(
+          "relative grid place-items-center overflow-hidden bg-white/[0.03]",
+          className,
+        )}
+        aria-label={alt}
+        role="img"
+      >
+        <span className="select-none text-[8px] uppercase tracking-[0.28em] text-muted-foreground/60">
+          ZZERKOFF
+        </span>
+      </div>
+    );
   }
 
   return (
     <img
-      src={url}
+      src={resolved}
       alt={alt}
       width={width}
       height={height}
       loading={eager ? "eager" : "lazy"}
       fetchPriority={eager ? "high" : "auto"}
       decoding="async"
+      onError={() => setFailed(true)}
       className={className}
     />
   );
