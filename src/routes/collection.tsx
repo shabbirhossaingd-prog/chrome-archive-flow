@@ -84,7 +84,7 @@ function CollectionPage() {
         </div>
       </section>
 
-      <Marquee text={collection?.marquee_text || undefined} />
+      <Marquee text={collection?.marquee_text || ""} />
 
       <section className="relative isolate px-5 py-28 sm:px-8 sm:py-36">
         <LiquidChrome className="-left-40 top-0 h-[34rem] w-[34rem]" opacity={0.14} />

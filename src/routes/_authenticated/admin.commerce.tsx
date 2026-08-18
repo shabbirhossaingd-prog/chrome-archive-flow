@@ -245,7 +245,7 @@ function AdminCommerce() {
       if (bundleProducts.length < 2) {
         throw new Error("Choose at least 2 objects.");
       }
-      const first = productMap.get(bundleProducts[0]);
+      const first = productMap.get(bundleProducts[0]!);
       const { error } = await (supabase as any).from("commerce_bundles").insert({
         code: bundleCode.trim().toUpperCase(),
         name: bundleName.trim(),
@@ -302,7 +302,7 @@ function AdminCommerce() {
     mutationFn: async () => {
       if (!lookTitle.trim()) throw new Error("Enter a look title.");
       if (lookProducts.length < 1) throw new Error("Choose at least 1 object.");
-      const first = productMap.get(lookProducts[0]);
+      const first = productMap.get(lookProducts[0]!);
       const { error } = await (supabase as any).from("commerce_shop_looks").insert({
         title: lookTitle.trim(),
         tagline: lookTagline.trim(),
