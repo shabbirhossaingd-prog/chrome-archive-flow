@@ -8,8 +8,11 @@ import { useAllCategories, useAdminProducts, type Product } from "@/lib/products
 import { adminCollectionsQuery } from "@/lib/cms";
 import { STOCK_OPTIONS } from "@/lib/site-config";
 import { peekProductCode, reserveProductCode } from "@/lib/admin.functions";
+import { removeUnusedMediaRefs } from "@/lib/media-cleanup";
 import { ImageUploader } from "./ImageUploader";
 import { AdminButton, Field, Toggle, adminField } from "./AdminUI";
+
+type SaveAction = "save" | "publish" | "unpublish";
 
 type Draft = {
   name: string;
@@ -167,12 +170,43 @@ export function ProductForm({ product }: { product?: Product }) {
 
   const relatedCandidates = products.filter((p) => p.id !== product?.id);
 
+  const originalImageRefs = useMemo(
+    () =>
+      product
+        ? [product.primary_image, ...(product.gallery_images ?? [])].filter(Boolean)
+        : [],
+    [product],
+  );
+
+  const currentImageRefs = () =>
+    [d.primary_image, ...d.gallery_images.slice(0, 5)].filter(Boolean);
+
+  const cleanupUnsavedUploads = async () => {
+    const original = new Set(originalImageRefs);
+    const candidates = currentImageRefs().filter((ref) => !original.has(ref));
+
+    if (candidates.length === 0) return;
+
+    try {
+      await removeUnusedMediaRefs(candidates);
+    } catch (error) {
+      console.warn("Could not clean unsaved media", error);
+    }
+  };
+
   const save = useMutation({
-    mutationFn: async ({ publish }: { publish: boolean }) => {
+    mutationFn: async ({ action }: { action: SaveAction }) => {
       if (!d.name.trim()) throw new Error("Product name is required");
       if (!d.category) throw new Error("Pick a category");
 
-      if (publish) {
+      const nextPublished =
+        action === "publish"
+          ? true
+          : action === "unpublish"
+            ? false
+            : product?.published ?? false;
+
+      if (nextPublished) {
         if (!d.primary_image) {
           throw new Error("Add a main image before publishing");
         }
@@ -180,13 +214,19 @@ export function ProductForm({ product }: { product?: Product }) {
           throw new Error("Activate this category before publishing the object");
         }
         if (d.archived) {
-          throw new Error("Unarchive this object before publishing it to the storefront");
+          throw new Error("Unpublish this object before archiving it.");
         }
       }
 
       const qty = Math.max(0, Number(d.quantity_available || 0));
       const status = qty <= 0 ? "SOLD OUT" : d.stock_status;
       const slug = await uniqueSlug(d.slug.trim() || d.name, product?.id);
+      const nextGallery = d.gallery_images.slice(0, 5);
+      const nextImageRefs = [d.primary_image, ...nextGallery].filter(Boolean);
+      const nextImageSet = new Set(nextImageRefs);
+      const removedMediaRefs = originalImageRefs.filter(
+        (ref) => !nextImageSet.has(ref),
+      );
 
       const payload = {
         name: d.name.trim(),
@@ -218,10 +258,10 @@ export function ProductForm({ product }: { product?: Product }) {
         featured: d.featured,
         new_collection: d.new_collection,
         archived: d.archived,
-        published: publish,
+        published: nextPublished,
         whatsapp_available: d.whatsapp_available,
         primary_image: d.primary_image,
-        gallery_images: d.gallery_images.slice(0, 5),
+        gallery_images: nextGallery,
         sort_order: Number(d.sort_order || 0),
       };
 
@@ -232,7 +272,14 @@ export function ProductForm({ product }: { product?: Product }) {
           .eq("id", product.id);
 
         if (error) throw error;
-        return { code: product.product_code, publish, slug };
+
+        return {
+          code: product.product_code,
+          action,
+          published: nextPublished,
+          slug,
+          removedMediaRefs,
+        };
       }
 
       const { code } = await reserveCode({ data: { category: d.category } });
@@ -243,18 +290,35 @@ export function ProductForm({ product }: { product?: Product }) {
       });
 
       if (error) throw error;
-      return { code, publish, slug };
+
+      return {
+        code,
+        action,
+        published: nextPublished,
+        slug,
+        removedMediaRefs,
+      };
     },
 
-    onSuccess: ({ code, publish }) => {
+    onSuccess: ({ code, action, published, removedMediaRefs }) => {
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
 
-      toast.success(
-        publish
-          ? `Object Published Successfully — ${code}`
-          : `Draft saved — ${code}`,
-      );
+      if (removedMediaRefs.length > 0) {
+        void removeUnusedMediaRefs(removedMediaRefs).catch((error) => {
+          console.warn("Could not clean removed media", error);
+        });
+      }
+
+      if (action === "unpublish") {
+        toast.success(`Object unpublished — ${code}`);
+      } else if (product && action === "save") {
+        toast.success(`Changes saved — ${code}`);
+      } else if (published) {
+        toast.success(`Object Published Successfully — ${code}`);
+      } else {
+        toast.success(`Draft saved — ${code}`);
+      }
 
       navigate({ to: "/admin/products" });
     },
@@ -691,27 +755,47 @@ export function ProductForm({ product }: { product?: Product }) {
         <AdminButton
           tone="primary"
           disabled={save.isPending}
-          onClick={() => save.mutate({ publish: false })}
-        >
-          {save.isPending ? "Saving…" : "Save draft"}
-        </AdminButton>
-
-        <AdminButton
-          tone="primary"
-          disabled={save.isPending}
-          onClick={() => save.mutate({ publish: true })}
+          onClick={() => save.mutate({ action: "save" })}
         >
           {save.isPending
-            ? "Publishing…"
+            ? "Saving…"
             : product
-              ? "Save & publish"
-              : "Publish object"}
+              ? "Save changes"
+              : "Save draft"}
         </AdminButton>
 
+        {product?.published ? (
+          <AdminButton
+            tone="danger"
+            disabled={save.isPending}
+            onClick={() => {
+              if (
+                confirm(
+                  "UNPUBLISH THIS OBJECT?\n\nIt will disappear from the public storefront but remain in Admin.",
+                )
+              ) {
+                save.mutate({ action: "unpublish" });
+              }
+            }}
+          >
+            {save.isPending ? "Saving…" : "Unpublish"}
+          </AdminButton>
+        ) : (
+          <AdminButton
+            tone="primary"
+            disabled={save.isPending}
+            onClick={() => save.mutate({ action: "publish" })}
+          >
+            {save.isPending ? "Publishing…" : "Publish object"}
+          </AdminButton>
+        )}
+
         <AdminButton
-          onClick={() => {
+          disabled={save.isPending}
+          onClick={async () => {
             if (!dirty || confirm("Discard unsaved changes?")) {
               setDirty(false);
+              await cleanupUnsavedUploads();
               navigate({ to: "/admin/products" });
             }
           }}
