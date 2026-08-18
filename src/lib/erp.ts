@@ -63,8 +63,8 @@ export function monthKey(date = new Date()) {
 }
 
 export function monthParts(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return { year, month };
+  const parts = value.split("-").map(Number);
+  return { year: parts[0] ?? new Date().getFullYear(), month: parts[1] ?? 1 };
 }
 
 export function monthRange(value: string) {

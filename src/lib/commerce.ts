@@ -59,9 +59,10 @@ export function addCartItem(item: CartItem) {
   const next = [...current];
 
   if (existing >= 0) {
+    const row = next[existing]!;
     next[existing] = {
-      ...next[existing],
-      quantity: next[existing].quantity + item.quantity,
+      ...row,
+      quantity: row.quantity + item.quantity,
     };
   } else {
     next.push(item);

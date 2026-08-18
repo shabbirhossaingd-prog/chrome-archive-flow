@@ -51,7 +51,7 @@ function ProductColorInventory() {
       .filter((row) => row.name);
 
     const stock: Record<string, number> = {};
-    for (const row of rows) stock[row.name] = row.qty;
+    for (const row of rows) stock[String(row.name)] = row.qty;
     return {
       colors: rows.map((row) => row.name),
       stock,

@@ -69,7 +69,7 @@ async function upload(file: File) {
       // UUID paths are immutable, so browsers/CDNs can safely cache them.
       cacheControl: "31536000",
       upsert: false,
-      contentType: optimized.type || undefined,
+      contentType: optimized.type || "image/jpeg",
     });
 
   if (error) throw error;
@@ -134,7 +134,10 @@ export function ImageUploader({
     const target = index + direction;
     if (target < 0 || target >= value.length) return;
     const next = [...value];
-    [next[index], next[target]] = [next[target], next[index]];
+    const a = next[index]!;
+    const b = next[target]!;
+    next[index] = b;
+    next[target] = a;
     onChange(next);
   };
 
