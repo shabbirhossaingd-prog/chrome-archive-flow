@@ -4,7 +4,10 @@ import { ArrowUpRight, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/site/PageShell";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
-import { SmartImage } from "@/components/site/SmartImage";
+import {
+  SmartImage,
+  absoluteSmartImageUrl,
+} from "@/components/site/SmartImage";
 import { Reveal } from "@/components/site/Reveal";
 import { ProductCard } from "@/components/site/ProductCard";
 import { WishlistButton } from "@/components/site/WishlistButton";
@@ -17,8 +20,8 @@ import {
 import {
   formatPrice,
   isSoldOut,
+  productBySlugQuery,
   productImages,
-  useProductBySlug,
   useProducts,
   type Product,
 } from "@/lib/products";
@@ -26,14 +29,28 @@ import { SITE, restockMessage } from "@/lib/site-config";
 import { OrderModal } from "@/components/site/OrderModal";
 import { addCartItem, productCartKey } from "@/lib/commerce";
 import { useSite } from "@/lib/settings";
+import { useCommerceAvailability } from "@/lib/commerce-availability";
 
 const pretty = (slug: string) => slug.replace(/-/g, " ").toUpperCase();
 
 export const Route = createFileRoute("/product/$slug")({
-  head: ({ params }) => {
-    const title = `${pretty(params.slug)} — ZZERKOFF`;
-    const description = `${pretty(params.slug)} — a ZZERKOFF object for the afterdark. Unisex chrome accessories.`;
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(productBySlugQuery(params.slug)),
+
+  head: ({ loaderData, params }) => {
+    const product = (loaderData ?? null) as Product | null;
+    const title = product
+      ? `${product.name} — ZZERKOFF`
+      : `${pretty(params.slug)} — ZZERKOFF`;
+
+    const description =
+      product?.short_description ||
+      product?.full_description ||
+      `${pretty(params.slug)} — a ZZERKOFF object for the afterdark.`;
+
     const canonical = `https://zzerkoff.vercel.app/product/${params.slug}`;
+    const image = absoluteSmartImageUrl(product?.primary_image);
+
     return {
       meta: [
         { title },
@@ -42,23 +59,21 @@ export const Route = createFileRoute("/product/$slug")({
         { property: "og:description", content: description },
         { property: "og:type", content: "product" },
         { property: "og:url", content: canonical },
-        {
-          property: "og:image",
-          content: "https://zzerkoff.vercel.app/images/zzerkoff-logo.png",
-        },
+        { property: "og:image", content: image },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        { name: "twitter:image", content: image },
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
   },
+
   component: ProductPage,
 });
 
 function ProductPage() {
-  const { slug } = Route.useParams();
-  const { data: product, isLoading } = useProductBySlug(slug);
+  const product = Route.useLoaderData() as Product | null;
   const { data: products = [] } = useProducts();
 
   return (
@@ -71,17 +86,13 @@ function ProductPage() {
           ← Back to shop
         </Link>
 
-        {isLoading && (
-          <div className="glass-panel mt-10 h-[60vh] animate-pulse rounded-[28px] bg-white/[0.02]" />
-        )}
-
-        {!isLoading && !product && (
+        {!product ? (
           <p className="py-32 text-center text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
             This object is no longer available.
           </p>
+        ) : (
+          <ProductDetail product={product} products={products} />
         )}
-
-        {product && <ProductDetail product={product} products={products} />}
       </div>
     </PageShell>
   );
@@ -95,12 +106,12 @@ function ProductDetail({
   products: Product[];
 }) {
   const site = useSite();
-  const productAny = product as any;
+  const { hasShopLooks } = useCommerceAvailability();
   const images = productImages(product);
   const sizes = product.sizes ?? [];
   const finishes = product.finish ?? [];
-  const colors = (productAny.colors ?? []) as string[];
-  const colorStock = (productAny.color_stock ?? {}) as Record<string, number>;
+  const colors = product.colors ?? [];
+  const colorStock = product.color_stock ?? {};
 
   const firstAvailableColor =
     colors.find((color) => Number(colorStock[color] ?? 0) > 0) ??
@@ -122,12 +133,17 @@ function ProductDetail({
 
   const aggregateSoldOut = isSoldOut(product);
   const colorAvailable =
-    colors.length > 0 ? Number(colorStock[color] ?? 0) : product.quantity_available;
+    colors.length > 0
+      ? Number(colorStock[color] ?? 0)
+      : product.quantity_available;
+
   const maxAvailable = Math.max(
     0,
     Math.min(product.quantity_available, colorAvailable),
   );
-  const soldOut = aggregateSoldOut || (colors.length > 0 && maxAvailable <= 0);
+
+  const soldOut =
+    aggregateSoldOut || (colors.length > 0 && maxAvailable <= 0);
 
   useEffect(() => {
     setQty((current) =>
@@ -136,12 +152,7 @@ function ProductDetail({
   }, [maxAvailable]);
 
   const productUrl = `https://zzerkoff.vercel.app/product/${product.slug}`;
-  const schemaImage =
-    images[0] && !images[0].startsWith("storage:")
-      ? images[0].startsWith("http")
-        ? images[0]
-        : `https://zzerkoff.vercel.app${images[0]}`
-      : "https://zzerkoff.vercel.app/images/zzerkoff-logo.png";
+  const schemaImage = absoluteSmartImageUrl(images[0]);
 
   const productSchema = {
     "@context": "https://schema.org",
@@ -181,8 +192,9 @@ function ProductDetail({
 
   const related = useMemo(() => {
     const published = products.filter(
-      (row) => row.id !== product.id && row.published,
+      (row) => row.id !== product.id && row.published && !row.archived,
     );
+
     const manual = (product.related_product_ids ?? [])
       .map((id) => published.find((row) => row.id === id))
       .filter((row): row is Product => !!row)
@@ -198,15 +210,18 @@ function ProductDetail({
       .map((row) => {
         let score = 0;
         if (row.category === product.category) score += 5;
+
         if (
           product.collection_id &&
           row.collection_id === product.collection_id
         ) {
           score += 3;
         }
+
         for (const tag of row.tags ?? []) {
           if (productTags.has(tag.toLowerCase())) score += 1;
         }
+
         if (!isSoldOut(row)) score += 1;
         return { row, score };
       })
@@ -242,7 +257,7 @@ function ProductDetail({
       color,
     });
 
-    toast.success("Added to Cart. Checkout will activate later.");
+    toast.success("Added to Cart.");
   };
 
   return (
@@ -351,9 +366,11 @@ function ProductDetail({
               <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
                 Color
               </span>
+
               <div className="flex flex-wrap gap-2">
                 {colors.map((value) => {
                   const available = Number(colorStock[value] ?? 0);
+
                   return (
                     <button
                       key={value}
@@ -379,6 +396,7 @@ function ProductDetail({
               <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
                 Size
               </span>
+
               <div className="flex flex-wrap gap-2">
                 {sizes.map((value) => (
                   <button
@@ -391,6 +409,7 @@ function ProductDetail({
                   </button>
                 ))}
               </div>
+
               {product.size_description && (
                 <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
                   {product.size_description}
@@ -404,6 +423,7 @@ function ProductDetail({
               <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
                 Finish
               </span>
+
               <div className="flex flex-wrap gap-2">
                 {finishes.map((value) => (
                   <button
@@ -423,6 +443,7 @@ function ProductDetail({
             <span className="mb-3 block text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
               Quantity
             </span>
+
             <div className="flex items-center gap-6">
               <button
                 type="button"
@@ -432,9 +453,9 @@ function ProductDetail({
               >
                 −
               </button>
-              <span className="text-xs tracking-[0.3em] text-foreground">
-                {qty}
-              </span>
+
+              <span className="text-xs tracking-[0.3em] text-foreground">{qty}</span>
+
               <button
                 type="button"
                 aria-label="Increase quantity"
@@ -450,6 +471,7 @@ function ProductDetail({
               >
                 +
               </button>
+
               {!soldOut && (
                 <span className="text-[8px] uppercase tracking-[0.24em] text-muted-foreground">
                   {maxAvailable} available
@@ -485,6 +507,7 @@ function ProductDetail({
                 <div className="w-full rounded-full border border-border/60 px-8 py-5 text-center text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
                   Sold out
                 </div>
+
                 <a
                   href={site.wa(
                     restockMessage(product.name, product.product_code),
@@ -498,6 +521,7 @@ function ProductDetail({
               </>
             ) : (
               <>
+                {/* Existing Place Order behavior intentionally unchanged. */}
                 <button
                   type="button"
                   onClick={() => setOrderOpen(true)}
@@ -513,7 +537,7 @@ function ProductDetail({
                   className="flex w-full items-center justify-center gap-3 rounded-full border border-border/60 px-8 py-5 text-[9px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:border-chrome/50 hover:text-foreground"
                 >
                   <ShoppingBag className="size-4" />
-                  Add to cart / future checkout
+                  Add to cart
                 </button>
 
                 <WishlistButton productId={product.id} label className="w-full" />
@@ -544,12 +568,15 @@ function ProductDetail({
               <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
                 RELATED OBJECTS
               </span>
-              <Link
-                to="/shop-the-look"
-                className="text-[8px] uppercase tracking-[0.28em] text-chrome"
-              >
-                Shop the Look
-              </Link>
+
+              {hasShopLooks && (
+                <Link
+                  to="/shop-the-look"
+                  className="text-[8px] uppercase tracking-[0.28em] text-chrome"
+                >
+                  Shop the Look
+                </Link>
+              )}
             </div>
           </Reveal>
 
