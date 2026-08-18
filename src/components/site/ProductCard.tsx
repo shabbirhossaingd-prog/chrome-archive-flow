@@ -2,7 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { SmartImage } from "./SmartImage";
 import { WishlistButton } from "./WishlistButton";
-import { formatPrice, isSoldOut, type Product } from "@/lib/products";
+import { isSoldOut, type Product } from "@/lib/products";
+import { useSite } from "@/lib/settings";
 
 export function ProductCard({
   product,
@@ -12,6 +13,7 @@ export function ProductCard({
   priority?: boolean;
 }) {
   const soldOut = isSoldOut(product);
+  const site = useSite();
 
   return (
     <article className="group glass-panel relative overflow-hidden rounded-[24px] transition-all duration-700 hover:border-chrome/60">
@@ -20,11 +22,7 @@ export function ProductCard({
         className="absolute right-3 top-3 z-20 bg-black/70"
       />
 
-      <Link
-        to="/product/$slug"
-        params={{ slug: product.slug }}
-        className="block"
-      >
+      <Link to="/product/$slug" params={{ slug: product.slug }} className="block">
         <div className="relative overflow-hidden bg-black">
           <SmartImage
             src={product.primary_image}
@@ -58,10 +56,10 @@ export function ProductCard({
               {product.name}
             </h3>
             <p className="mt-2 text-[11px] tracking-[0.2em] text-chrome">
-              {formatPrice(product.price)}
+              {site.price(product.price)}
               {product.old_price ? (
                 <span className="ml-2 text-muted-foreground line-through">
-                  {formatPrice(product.old_price)}
+                  {site.price(product.old_price)}
                 </span>
               ) : null}
             </p>
