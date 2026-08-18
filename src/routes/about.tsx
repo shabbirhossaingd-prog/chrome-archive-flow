@@ -52,10 +52,11 @@ function AboutPage() {
 
   return (
     <PageShell>
-      <section className="relative isolate overflow-hidden px-5 pt-40 sm:px-8 sm:pt-56">
+      <section className="relative isolate px-5 pt-40 sm:px-8 sm:pt-56">
         <LiquidChrome
-          className="left-1/2 top-24 h-[46rem] w-[46rem] -translate-x-1/2"
-          opacity={0.2}
+          className="left-1/2 top-16 h-[30rem] w-[34rem] -translate-x-1/2"
+          opacity={0.12}
+          blur={40}
         />
         <div className="mx-auto max-w-4xl">
           <Reveal>
@@ -81,8 +82,13 @@ function AboutPage() {
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden px-5 py-36 sm:px-8 sm:py-48">
-        <LiquidChrome className="-left-40 top-10 h-[36rem] w-[36rem]" opacity={0.14} flip />
+      <section className="relative isolate px-5 py-36 sm:px-8 sm:py-48">
+        <LiquidChrome
+          className="left-0 top-16 h-[26rem] w-[30rem]"
+          opacity={0.09}
+          blur={40}
+          flip
+        />
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <h2 className="chrome-text whitespace-pre-line font-display text-4xl leading-[1.08] tracking-[0.06em] sm:text-6xl lg:text-7xl">
