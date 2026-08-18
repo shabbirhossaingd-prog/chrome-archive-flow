@@ -7,11 +7,12 @@ import { Marquee } from "@/components/site/Marquee";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { Reveal } from "@/components/site/Reveal";
 import { Toaster } from "@/components/ui/sonner";
-import { useCategories, useProducts, formatPrice } from "@/lib/products";
+import { useCategories, useProducts } from "@/lib/products";
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { CategoryCard } from "@/components/site/CategoryCard";
 import { SmartImage } from "@/components/site/SmartImage";
 import { pageJson, useCurrentCollection, usePage } from "@/lib/cms";
+import { useSite } from "@/lib/settings";
 import campaign1 from "@/assets/campaign-1.webp";
 import campaign2 from "@/assets/campaign-2.webp";
 
@@ -60,6 +61,11 @@ type HomeSection = {
   image: string;
   button_label: string;
   button_href: string;
+  product_ids?: string[];
+  category_slug?: string;
+  collection_id?: string;
+  starts_at?: string;
+  ends_at?: string;
 };
 
 type HomeJson = {
@@ -83,6 +89,47 @@ function SectionLabel({ children }: { children: string }) {
       {children}
     </span>
   );
+}
+
+function sectionIsLive(section: HomeSection) {
+  if (!section.enabled) return false;
+
+  const now = Date.now();
+  const starts = section.starts_at ? new Date(section.starts_at).getTime() : null;
+  const ends = section.ends_at ? new Date(section.ends_at).getTime() : null;
+
+  if (starts && Number.isFinite(starts) && now < starts) return false;
+  if (ends && Number.isFinite(ends) && now > ends) return false;
+  return true;
+}
+
+function productsForSection(section: HomeSection, products: any[]) {
+  const ids = section.product_ids ?? [];
+
+  if (ids.length > 0) {
+    const order = new Map(ids.map((id, index) => [id, index]));
+    return products
+      .filter((product) => order.has(product.id))
+      .sort(
+        (a, b) =>
+          (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (order.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      );
+  }
+
+  if (section.category_slug) {
+    return products.filter(
+      (product) => product.category === section.category_slug,
+    );
+  }
+
+  if (section.collection_id) {
+    return products.filter(
+      (product) => product.collection_id === section.collection_id,
+    );
+  }
+
+  return [];
 }
 
 function Index() {
@@ -112,15 +159,14 @@ function Index() {
   const { data: currentCollection } = useCurrentCollection();
   const { page: homePage } = usePage("home");
   const home = pageJson<HomeJson>(homePage);
+  const site = useSite();
 
-  const currentProducts = currentCollection
-    ? products.filter((product) => product.collection_id === currentCollection.id)
+  // Never mix objects from another drop under a current collection heading.
+  const newDrop = currentCollection
+    ? products.filter(
+        (product) => product.collection_id === currentCollection.id,
+      )
     : products.filter((product) => product.new_collection);
-
-  const newDrop =
-    currentProducts.length > 0
-      ? currentProducts
-      : products.filter((product) => product.new_collection);
 
   const dropCode =
     currentCollection?.collection_code ||
@@ -140,8 +186,17 @@ function Index() {
       ),
     ).join(" / ") || "OBJECTS";
 
-  const featured =
+  const featuredFromDrop =
     newDrop.find((product) => product.featured) ?? newDrop[0] ?? null;
+
+  const featured =
+    featuredFromDrop ??
+    products.find((product) => product.featured) ??
+    null;
+
+  const featuredLabel = featuredFromDrop
+    ? `${dropCode} / 01`
+    : "ZZ / FEATURED";
 
   const visibleCategories = useMemo(
     () =>
@@ -180,7 +235,7 @@ function Index() {
     .filter(Boolean);
 
   const archiveImages = home.archive_images ?? [];
-  const customSections = (home.sections ?? []).filter((section) => section.enabled);
+  const customSections = (home.sections ?? []).filter(sectionIsLive);
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background">
@@ -289,12 +344,12 @@ function Index() {
             </Reveal>
 
             <Reveal delay={150}>
-              <SectionLabel>{`${dropCode} / 01`}</SectionLabel>
+              <SectionLabel>{featuredLabel}</SectionLabel>
               <h2 className="mt-5 font-display text-2xl tracking-[0.18em] text-foreground sm:text-4xl">
                 {featured.name}
               </h2>
               <p className="mt-5 text-sm tracking-[0.25em] text-chrome">
-                {formatPrice(featured.price)}
+                {site.price(featured.price)}
               </p>
               {featured.short_description && (
                 <p className="mt-6 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
@@ -331,55 +386,172 @@ function Index() {
         </section>
       )}
 
-      {customSections.map((section, index) => (
-        <section
-          key={section.id}
-          className="perf-below-fold relative isolate px-5 py-20 sm:px-8 sm:py-28"
-        >
-          <div
-            className={`mx-auto max-w-7xl ${
-              section.image
-                ? "grid items-center gap-10 lg:grid-cols-2 lg:gap-16"
-                : "max-w-4xl text-center"
-            }`}
+      {customSections.map((section, index) => {
+        const selectedProducts = productsForSection(section, products);
+        const productDriven = [
+          "shop-look",
+          "shop-teaser",
+          "featured-products",
+          "collection",
+        ].includes(section.type);
+
+        if (productDriven && selectedProducts.length === 0) {
+          return null;
+        }
+
+        if (section.type === "announcement") {
+          return (
+            <section
+              key={section.id}
+              className="perf-below-fold border-y border-border/50 px-5 py-12 text-center sm:px-8"
+            >
+              <div className="mx-auto max-w-4xl">
+                <SectionLabel>ANNOUNCEMENT</SectionLabel>
+
+                {section.title && (
+                  <h2 className="mt-4 font-display text-2xl tracking-[0.18em] text-foreground">
+                    {section.title}
+                  </h2>
+                )}
+
+                {section.body && (
+                  <p className="mt-4 font-editorial text-lg text-muted-foreground">
+                    {section.body}
+                  </p>
+                )}
+
+                {section.button_label && section.button_href && (
+                  <a
+                    href={section.button_href}
+                    className="mt-6 inline-flex rounded-full border border-chrome/50 px-6 py-3 text-[9px] uppercase tracking-[0.3em] text-foreground"
+                  >
+                    {section.button_label}
+                  </a>
+                )}
+              </div>
+            </section>
+          );
+        }
+
+        if (
+          section.type === "shop-look" ||
+          section.type === "shop-teaser" ||
+          section.type === "featured-products" ||
+          section.type === "collection"
+        ) {
+          return (
+            <section
+              key={section.id}
+              className="perf-below-fold relative isolate px-5 py-24 sm:px-8"
+            >
+              <div className="mx-auto max-w-7xl">
+                <Reveal>
+                  <SectionLabel>
+                    {section.type.replace(/-/g, " ").toUpperCase()}
+                  </SectionLabel>
+
+                  {section.title && (
+                    <h2 className="mt-5 font-display text-3xl tracking-[0.16em] text-foreground sm:text-5xl">
+                      {section.title}
+                    </h2>
+                  )}
+
+                  {section.body && (
+                    <p className="mt-5 max-w-2xl font-editorial text-lg leading-relaxed text-muted-foreground">
+                      {section.body}
+                    </p>
+                  )}
+                </Reveal>
+
+                {section.image && (
+                  <Reveal
+                    delay={100}
+                    className="glass-panel mt-10 overflow-hidden rounded-[26px]"
+                  >
+                    <SmartImage
+                      src={section.image}
+                      alt={section.title || `Home section ${index + 1}`}
+                      width={1600}
+                      height={900}
+                      className="aspect-[16/7] w-full object-cover grayscale"
+                    />
+                  </Reveal>
+                )}
+
+                <div className="mt-10">
+                  <ProductGrid
+                    products={selectedProducts.slice(0, 8)}
+                    loading={false}
+                  />
+                </div>
+
+                {section.button_label && section.button_href && (
+                  <a
+                    href={section.button_href}
+                    className="mt-10 inline-flex rounded-full border border-chrome/50 px-7 py-4 text-[9px] uppercase tracking-[0.35em] text-foreground"
+                  >
+                    {section.button_label}
+                  </a>
+                )}
+              </div>
+            </section>
+          );
+        }
+
+        return (
+          <section
+            key={section.id}
+            className="perf-below-fold relative isolate px-5 py-20 sm:px-8 sm:py-28"
           >
-            {section.image && (
-              <Reveal className="glass-panel overflow-hidden rounded-[26px]">
-                <SmartImage
-                  src={section.image}
-                  alt={section.title || `Home section ${index + 1}`}
-                  width={1200}
-                  height={1400}
-                  className="aspect-4/5 w-full object-cover grayscale"
-                />
+            <div
+              className={`mx-auto max-w-7xl ${
+                section.image
+                  ? "grid items-center gap-10 lg:grid-cols-2 lg:gap-16"
+                  : "max-w-4xl text-center"
+              }`}
+            >
+              {section.image && (
+                <Reveal className="glass-panel overflow-hidden rounded-[26px]">
+                  <SmartImage
+                    src={section.image}
+                    alt={section.title || `Home section ${index + 1}`}
+                    width={1200}
+                    height={1400}
+                    className="aspect-4/5 w-full object-cover grayscale"
+                  />
+                </Reveal>
+              )}
+
+              <Reveal delay={section.image ? 120 : 0}>
+                <SectionLabel>
+                  {section.type.replace(/-/g, " ").toUpperCase()}
+                </SectionLabel>
+
+                {section.title && (
+                  <h2 className="mt-5 font-display text-3xl tracking-[0.16em] text-foreground sm:text-5xl">
+                    {section.title}
+                  </h2>
+                )}
+
+                {section.body && (
+                  <p className="mt-6 whitespace-pre-line font-editorial text-lg leading-relaxed text-muted-foreground">
+                    {section.body}
+                  </p>
+                )}
+
+                {section.button_label && section.button_href && (
+                  <a
+                    href={section.button_href}
+                    className="mt-8 inline-flex rounded-full border border-chrome/50 px-7 py-4 text-[9px] uppercase tracking-[0.35em] text-foreground"
+                  >
+                    {section.button_label}
+                  </a>
+                )}
               </Reveal>
-            )}
-            <Reveal delay={section.image ? 120 : 0}>
-              <SectionLabel>
-                {section.type.replace(/-/g, " ").toUpperCase()}
-              </SectionLabel>
-              {section.title && (
-                <h2 className="mt-5 font-display text-3xl tracking-[0.16em] text-foreground sm:text-5xl">
-                  {section.title}
-                </h2>
-              )}
-              {section.body && (
-                <p className="mt-6 whitespace-pre-line font-editorial text-lg leading-relaxed text-muted-foreground">
-                  {section.body}
-                </p>
-              )}
-              {section.button_label && section.button_href && (
-                <a
-                  href={section.button_href}
-                  className="mt-8 inline-flex rounded-full border border-chrome/50 px-7 py-4 text-[9px] uppercase tracking-[0.35em] text-foreground"
-                >
-                  {section.button_label}
-                </a>
-              )}
-            </Reveal>
-          </div>
-        </section>
-      ))}
+            </div>
+          </section>
+        );
+      })}
 
       <section className="perf-below-fold relative isolate overflow-hidden px-5 py-36 sm:px-8 sm:py-48">
         <LiquidChrome
