@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageShell, PageHeading } from "@/components/site/PageShell";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { Reveal } from "@/components/site/Reveal";
 import { ProductGrid } from "@/components/site/ProductGrid";
-import { useCategories, useProducts, prettyCategory } from "@/lib/products";
+import { useCategories, useProducts } from "@/lib/products";
 import { usePage, pageJson } from "@/lib/cms";
 
 export const Route = createFileRoute("/shop/")({
@@ -13,7 +13,8 @@ export const Route = createFileRoute("/shop/")({
       { title: "Shop the Objects — ZZERKOFF" },
       {
         name: "description",
-        content: "The ZZERKOFF object directory. Limited chrome objects for the afterdark.",
+        content:
+          "The ZZERKOFF object directory. Limited chrome objects for the afterdark.",
       },
       { property: "og:title", content: "Shop the Objects — ZZERKOFF" },
       {
@@ -35,48 +36,33 @@ function ShopPage() {
   const { data: products = [], isLoading, error } = useProducts();
   const { page } = usePage("shop");
   const json = pageJson<ShopJson>(page);
-
   const [active, setActive] = useState("all");
 
   const filters = useMemo(() => {
     const counts = new Map<string, number>();
 
     for (const product of products) {
-      counts.set(
-        product.category,
-        (counts.get(product.category) ?? 0) + 1,
-      );
-    }
-
-    const visibleCategories = categories
-      .filter((category) => (counts.get(category.slug) ?? 0) > 0)
-      .map((category) => ({
-        slug: category.slug,
-        name: category.name,
-        count: counts.get(category.slug) ?? 0,
-      }));
-
-    const known = new Set(visibleCategories.map((category) => category.slug));
-
-    for (const [slug, count] of counts.entries()) {
-      if (!known.has(slug)) {
-        visibleCategories.push({
-          slug,
-          name: prettyCategory(slug),
-          count,
-        });
-      }
+      counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
     }
 
     return [
-      {
-        slug: "all",
-        name: "ALL",
-        count: products.length,
-      },
-      ...visibleCategories,
+      { slug: "all", name: "ALL", count: products.length },
+      ...categories
+        .filter((category) => (counts.get(category.slug) ?? 0) > 0)
+        .map((category) => ({
+          slug: category.slug,
+          name: category.name,
+          count: counts.get(category.slug) ?? 0,
+        })),
     ];
   }, [categories, products]);
+
+  useEffect(() => {
+    if (active === "all") return;
+    if (!filters.some((filter) => filter.slug === active)) {
+      setActive("all");
+    }
+  }, [active, filters]);
 
   const filtered =
     active === "all"
@@ -126,7 +112,6 @@ function ShopPage() {
                   }`}
                 >
                   {filter.name}
-
                   <span className="ml-2 text-[8px] opacity-60">
                     {filter.count}
                   </span>
