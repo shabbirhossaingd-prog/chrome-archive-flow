@@ -144,20 +144,20 @@ function ErpMonthClose() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <ErpMetric
               label="Sales"
-              value={money(metrics?.gross_sales ?? 0, site.currencySymbol)}
+              value={money(metrics?["gross_sales"] ?? 0, site.currencySymbol)}
             />
             <ErpMetric
               label="Net profit"
-              value={money(metrics?.net_profit ?? 0, site.currencySymbol)}
+              value={money(metrics?["net_profit"] ?? 0, site.currencySymbol)}
               emphasis
             />
             <ErpMetric
               label="Expenses"
-              value={money(metrics?.operating_expenses ?? 0, site.currencySymbol)}
+              value={money(metrics?["operating_expenses"] ?? 0, site.currencySymbol)}
             />
             <ErpMetric
               label="Stock value"
-              value={money(metrics?.stock_value ?? 0, site.currencySymbol)}
+              value={money(metrics?["stock_value"] ?? 0, site.currencySymbol)}
             />
           </div>
 
@@ -210,7 +210,7 @@ function ErpMonthClose() {
                           {monthLabel(key)}
                         </p>
                         <p className="mt-2 font-display text-xl tracking-[0.1em] text-chrome">
-                          {money(snapshot.net_profit || 0, site.currencySymbol)}
+                          {money(snapshot["net_profit"] || 0, site.currencySymbol)}
                         </p>
                         <p className="mt-2 text-[8px] uppercase tracking-[0.2em] text-muted-foreground">
                           Net profit · {row.status}
@@ -219,11 +219,11 @@ function ErpMonthClose() {
 
                       <div className="text-right">
                         <p className="text-[9px] text-foreground">
-                          {money(snapshot.gross_sales || 0, site.currencySymbol)} sales
+                          {money(snapshot["gross_sales"] || 0, site.currencySymbol)} sales
                         </p>
                         <p className="mt-2 text-[8px] text-muted-foreground">
-                          {snapshot.delivered_orders || 0} delivered ·{" "}
-                          {snapshot.units_sold || 0} units
+                          {snapshot["delivered_orders"] || 0} delivered ·{" "}
+                          {snapshot["units_sold"] || 0} units
                         </p>
                       </div>
                     </div>
@@ -232,25 +232,25 @@ function ErpMonthClose() {
                       <div>
                         <ErpLabel>COGS</ErpLabel>
                         <p className="mt-2 text-[9px] text-foreground">
-                          {money(snapshot.cogs || 0, site.currencySymbol)}
+                          {money(snapshot["cogs"] || 0, site.currencySymbol)}
                         </p>
                       </div>
                       <div>
                         <ErpLabel>Expense</ErpLabel>
                         <p className="mt-2 text-[9px] text-foreground">
-                          {money(snapshot.operating_expenses || 0, site.currencySymbol)}
+                          {money(snapshot["operating_expenses"] || 0, site.currencySymbol)}
                         </p>
                       </div>
                       <div>
                         <ErpLabel>COD pending</ErpLabel>
                         <p className="mt-2 text-[9px] text-foreground">
-                          {money(snapshot.cod_pending || 0, site.currencySymbol)}
+                          {money(snapshot["cod_pending"] || 0, site.currencySymbol)}
                         </p>
                       </div>
                       <div>
                         <ErpLabel>Stock value</ErpLabel>
                         <p className="mt-2 text-[9px] text-foreground">
-                          {money(snapshot.stock_value || 0, site.currencySymbol)}
+                          {money(snapshot["stock_value"] || 0, site.currencySymbol)}
                         </p>
                       </div>
                     </div>

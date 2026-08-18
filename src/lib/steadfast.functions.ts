@@ -43,15 +43,15 @@ type OrderRow = {
 
 function env() {
   const supabaseUrl =
-    process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+    process.env['SUPABASE_URL'] || process.env['VITE_SUPABASE_URL'] || "";
   const supabaseKey =
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env['SUPABASE_PUBLISHABLE_KEY'] ||
+    process.env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
     "";
-  const apiKey = process.env.STEADFAST_API_KEY || "";
-  const secretKey = process.env.STEADFAST_SECRET_KEY || "";
+  const apiKey = process.env['STEADFAST_API_KEY'] || "";
+  const secretKey = process.env['STEADFAST_SECRET_KEY'] || "";
   const baseUrl =
-    process.env.STEADFAST_API_BASE_URL ||
+    process.env['STEADFAST_API_BASE_URL'] ||
     "https://portal.packzy.com/api/v1";
 
   if (!supabaseUrl || !supabaseKey) {

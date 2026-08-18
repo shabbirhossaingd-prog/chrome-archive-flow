@@ -30,7 +30,7 @@ export function usePage(key: PageKey) {
 }
 
 export function pageJson<T = Record<string, unknown>>(page: Page | null): T {
-  return ((page?.content_json ?? {}) as T) ?? ({} as T);
+  return (page?.content_json ?? {}) as T;
 }
 
 /* ---------------- COLLECTIONS ---------------- */
