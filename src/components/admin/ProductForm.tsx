@@ -97,14 +97,18 @@ function toDraft(p?: Product): Draft {
 
 async function uniqueSlug(base: string, currentId?: string) {
   const clean = slugify(base) || `object-${Date.now()}`;
+
   for (let i = 0; i < 100; i += 1) {
     const candidate = i === 0 ? clean : `${clean}-${i + 1}`;
     let q = supabase.from("products").select("id").eq("slug", candidate).limit(1);
+
     if (currentId) q = q.neq("id", currentId);
+
     const { data, error } = await q;
     if (error) throw error;
     if (!data?.length) return candidate;
   }
+
   return `${clean}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
@@ -113,24 +117,40 @@ export function ProductForm({ product }: { product?: Product }) {
   const [dirty, setDirty] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const { data: categories = [] } = useAllCategories();
   const { data: products = [] } = useAdminProducts();
   const { data: collections = [] } = useQuery(adminCollectionsQuery);
+
   const reserveCode = useServerFn(reserveProductCode);
   const previewCode = useServerFn(peekProductCode);
 
+  const selectableCategories = useMemo(
+    () =>
+      categories.filter(
+        (category) => category.active || category.slug === product?.category,
+      ),
+    [categories, product?.category],
+  );
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.slug === d.category) ?? null,
+    [categories, d.category],
+  );
+
   const { data: codePreview, isFetching: codeLoading } = useQuery({
     queryKey: ["product-code-preview", d.category],
-    enabled: !product && !!d.category,
+    enabled: !product && !!d.category && selectedCategory?.active === true,
     queryFn: () => previewCode({ data: { category: d.category } }),
   });
 
   useEffect(() => {
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!dirty) return;
-      e.preventDefault();
-      e.returnValue = "";
+      event.preventDefault();
+      event.returnValue = "";
     };
+
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
@@ -151,7 +171,18 @@ export function ProductForm({ product }: { product?: Product }) {
     mutationFn: async ({ publish }: { publish: boolean }) => {
       if (!d.name.trim()) throw new Error("Product name is required");
       if (!d.category) throw new Error("Pick a category");
-      if (publish && !d.primary_image) throw new Error("Add a main image before publishing");
+
+      if (publish) {
+        if (!d.primary_image) {
+          throw new Error("Add a main image before publishing");
+        }
+        if (!selectedCategory?.active) {
+          throw new Error("Activate this category before publishing the object");
+        }
+        if (d.archived) {
+          throw new Error("Unarchive this object before publishing it to the storefront");
+        }
+      }
 
       const qty = Math.max(0, Number(d.quantity_available || 0));
       const status = qty <= 0 ? "SOLD OUT" : d.stock_status;
@@ -195,47 +226,62 @@ export function ProductForm({ product }: { product?: Product }) {
       };
 
       if (product) {
-        const { error } = await supabase.from("products").update(payload).eq("id", product.id);
+        const { error } = await supabase
+          .from("products")
+          .update(payload)
+          .eq("id", product.id);
+
         if (error) throw error;
         return { code: product.product_code, publish, slug };
       }
 
       const { code } = await reserveCode({ data: { category: d.category } });
+
       const { error } = await supabase.from("products").insert({
         ...payload,
         product_code: code,
       });
+
       if (error) throw error;
       return { code, publish, slug };
     },
+
     onSuccess: ({ code, publish }) => {
       setDirty(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
+
       toast.success(
-        publish ? `Object Published Successfully — ${code}` : `Draft saved — ${code}`,
+        publish
+          ? `Object Published Successfully — ${code}`
+          : `Draft saved — ${code}`,
       );
+
       navigate({ to: "/admin/products" });
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save object"),
+
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Could not save object"),
   });
 
   const toggleRelated = (id: string) => {
     if (d.related_product_ids.includes(id)) {
-      set("related_product_ids", d.related_product_ids.filter((v) => v !== id));
+      set(
+        "related_product_ids",
+        d.related_product_ids.filter((value) => value !== id),
+      );
       return;
     }
+
     if (d.related_product_ids.length >= 2) {
       toast.error("Select up to 2 related objects");
       return;
     }
+
     set("related_product_ids", [...d.related_product_ids, id]);
   };
 
   return (
-    <form
-      onSubmit={(e) => e.preventDefault()}
-      className="space-y-8 pb-20"
-    >
+    <form onSubmit={(event) => event.preventDefault()} className="space-y-8 pb-20">
       <div className="glass-panel rounded-[24px] p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -245,12 +291,15 @@ export function ProductForm({ product }: { product?: Product }) {
             <p className="mt-2 font-display text-lg tracking-[0.18em] text-foreground">
               {product?.product_code ||
                 (d.category
-                  ? codeLoading
-                    ? "Checking…"
-                    : codePreview?.code ?? "Generated automatically"
+                  ? selectedCategory?.active === false
+                    ? "Category hidden"
+                    : codeLoading
+                      ? "Checking…"
+                      : codePreview?.code ?? "Generated automatically"
                   : "Select a category")}
             </p>
           </div>
+
           <div className="sm:text-right">
             <span className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
               STATUS
@@ -266,13 +315,14 @@ export function ProductForm({ product }: { product?: Product }) {
         <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
           BASIC INFORMATION
         </h2>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Product name">
             <input
               className={adminField}
               value={d.name}
-              onChange={(e) => {
-                const name = e.target.value;
+              onChange={(event) => {
+                const name = event.target.value;
                 setDirty(true);
                 setD((prev) => ({
                   ...prev,
@@ -282,57 +332,64 @@ export function ProductForm({ product }: { product?: Product }) {
               }}
             />
           </Field>
+
           <Field label="Slug / URL">
             <input
               className={adminField}
               value={d.slug}
-              onChange={(e) => set("slug", slugify(e.target.value))}
+              onChange={(event) => set("slug", slugify(event.target.value))}
             />
           </Field>
+
           <Field label="Category">
             <select
               className={adminField}
               value={d.category}
-              onChange={(e) => set("category", e.target.value)}
+              onChange={(event) => set("category", event.target.value)}
             >
               <option value="">SELECT…</option>
-              {categories.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name} ({c.code_prefix})
+              {selectableCategories.map((category) => (
+                <option key={category.slug} value={category.slug}>
+                  {category.name} ({category.code_prefix})
+                  {!category.active ? " — HIDDEN" : ""}
                 </option>
               ))}
             </select>
           </Field>
+
           <Field label="Collection">
             <select
               className={adminField}
               value={d.collection_id}
-              onChange={(e) => set("collection_id", e.target.value)}
+              onChange={(event) => set("collection_id", event.target.value)}
             >
               <option value="">NO COLLECTION</option>
-              {collections.map((c) => (
-                <option key={c.id} value={c.id}>
-                  DROP {String(c.drop_number).padStart(3, "0")} — {c.name}
+              {collections.map((collection) => (
+                <option key={collection.id} value={collection.id}>
+                  DROP {String(collection.drop_number).padStart(3, "0")} —{" "}
+                  {collection.name}
                 </option>
               ))}
             </select>
           </Field>
+
           <Field label="Price">
             <input
               className={adminField}
               type="number"
               min={0}
               value={d.price}
-              onChange={(e) => set("price", e.target.value)}
+              onChange={(event) => set("price", event.target.value)}
             />
           </Field>
+
           <Field label="Old price (optional)">
             <input
               className={adminField}
               type="number"
               min={0}
               value={d.old_price}
-              onChange={(e) => set("old_price", e.target.value)}
+              onChange={(event) => set("old_price", event.target.value)}
             />
           </Field>
         </div>
@@ -342,15 +399,16 @@ export function ProductForm({ product }: { product?: Product }) {
             className={adminField}
             rows={2}
             value={d.short_description}
-            onChange={(e) => set("short_description", e.target.value)}
+            onChange={(event) => set("short_description", event.target.value)}
           />
         </Field>
+
         <Field label="Full description">
           <textarea
             className={adminField}
             rows={5}
             value={d.full_description}
-            onChange={(e) => set("full_description", e.target.value)}
+            onChange={(event) => set("full_description", event.target.value)}
           />
         </Field>
       </section>
@@ -359,35 +417,39 @@ export function ProductForm({ product }: { product?: Product }) {
         <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
           PRODUCT ATTRIBUTES
         </h2>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Material">
             <input
               className={adminField}
               value={d.material}
-              onChange={(e) => set("material", e.target.value)}
+              onChange={(event) => set("material", event.target.value)}
             />
           </Field>
+
           <Field label="Finish / color (comma separated)">
             <input
               className={adminField}
               value={d.finish}
-              onChange={(e) => set("finish", e.target.value)}
+              onChange={(event) => set("finish", event.target.value)}
               placeholder="CHROME, GUNMETAL"
             />
           </Field>
+
           <Field label="Fit / gender">
             <input
               className={adminField}
               value={d.fit_gender}
-              onChange={(e) => set("fit_gender", e.target.value)}
+              onChange={(event) => set("fit_gender", event.target.value)}
               placeholder="UNISEX"
             />
           </Field>
+
           <Field label="Tags (comma separated)">
             <input
               className={adminField}
               value={d.tags}
-              onChange={(e) => set("tags", e.target.value)}
+              onChange={(event) => set("tags", event.target.value)}
               placeholder="gothic, chrome, y2k"
             />
           </Field>
@@ -395,50 +457,61 @@ export function ProductForm({ product }: { product?: Product }) {
       </section>
 
       <section className="glass-panel space-y-6 rounded-[24px] p-6">
-        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">SIZE</h2>
+        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+          SIZE
+        </h2>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Size type">
             <select
               className={adminField}
               value={d.size_type}
-              onChange={(e) => set("size_type", e.target.value)}
+              onChange={(event) => set("size_type", event.target.value)}
             >
-              {["ADJUSTABLE", "FIXED", "ONE SIZE", "MULTIPLE SIZES", "CUSTOM"].map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
+              {["ADJUSTABLE", "FIXED", "ONE SIZE", "MULTIPLE SIZES", "CUSTOM"].map(
+                (value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ),
+              )}
             </select>
           </Field>
+
           <Field label="Available sizes (comma separated)">
             <input
               className={adminField}
               value={d.sizes}
-              onChange={(e) => set("sizes", e.target.value)}
+              onChange={(event) => set("sizes", event.target.value)}
               placeholder="6, 7, 8, 9 or S, M, L"
             />
           </Field>
         </div>
+
         <Field label="Size description">
           <textarea
             className={adminField}
             rows={2}
             value={d.size_description}
-            onChange={(e) => set("size_description", e.target.value)}
+            onChange={(event) => set("size_description", event.target.value)}
           />
         </Field>
+
         <Field label="Size guide">
           <textarea
             className={adminField}
             rows={4}
             value={d.size_guide}
-            onChange={(e) => set("size_guide", e.target.value)}
+            onChange={(event) => set("size_guide", event.target.value)}
           />
         </Field>
       </section>
 
       <section className="glass-panel space-y-6 rounded-[24px] p-6">
-        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">STOCK</h2>
+        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+          STOCK
+        </h2>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Quantity available">
             <input
@@ -446,26 +519,28 @@ export function ProductForm({ product }: { product?: Product }) {
               type="number"
               min={0}
               value={d.quantity_available}
-              onChange={(e) => {
-                const value = e.target.value;
+              onChange={(event) => {
+                const value = event.target.value;
                 setDirty(true);
                 setD((prev) => ({
                   ...prev,
                   quantity_available: value,
-                  stock_status: Number(value || 0) <= 0 ? "SOLD OUT" : prev.stock_status,
+                  stock_status:
+                    Number(value || 0) <= 0 ? "SOLD OUT" : prev.stock_status,
                 }));
               }}
             />
           </Field>
+
           <Field label="Stock status">
             <select
               className={adminField}
               value={d.stock_status}
-              onChange={(e) => set("stock_status", e.target.value)}
+              onChange={(event) => set("stock_status", event.target.value)}
             >
-              {STOCK_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {STOCK_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
                 </option>
               ))}
             </select>
@@ -477,50 +552,58 @@ export function ProductForm({ product }: { product?: Product }) {
         <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
           PRODUCT ACCORDIONS
         </h2>
+
         <Field label="Details content">
           <textarea
             className={adminField}
             rows={4}
             value={d.details_content}
-            onChange={(e) => set("details_content", e.target.value)}
+            onChange={(event) => set("details_content", event.target.value)}
           />
         </Field>
+
         <Field label="Material content">
           <textarea
             className={adminField}
             rows={4}
             value={d.material_content}
-            onChange={(e) => set("material_content", e.target.value)}
+            onChange={(event) => set("material_content", event.target.value)}
           />
         </Field>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Care content">
             <textarea
               className={adminField}
               rows={4}
               value={d.care}
-              onChange={(e) => set("care", e.target.value)}
+              onChange={(event) => set("care", event.target.value)}
             />
           </Field>
+
           <Field label="Delivery content">
             <textarea
               className={adminField}
               rows={4}
               value={d.delivery}
-              onChange={(e) => set("delivery", e.target.value)}
+              onChange={(event) => set("delivery", event.target.value)}
             />
           </Field>
         </div>
       </section>
 
       <section className="glass-panel space-y-7 rounded-[24px] p-6">
-        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">IMAGES</h2>
+        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+          IMAGES
+        </h2>
+
         <ImageUploader
           label="Main image"
           max={1}
           value={d.primary_image ? [d.primary_image] : []}
           onChange={(next) => set("primary_image", next[0] ?? "")}
         />
+
         <ImageUploader
           label="Gallery"
           max={5}
@@ -533,18 +616,21 @@ export function ProductForm({ product }: { product?: Product }) {
         <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
           RELATED OBJECTS
         </h2>
+
         <p className="text-[10px] leading-relaxed text-muted-foreground">
-          Select up to 2 manual recommendations. Leave empty to allow the public product page to
-          use automatic recommendations.
+          Select up to 2 manual recommendations. Leave empty to allow the public
+          product page to use automatic recommendations.
         </p>
+
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {relatedCandidates.map((p) => {
-            const active = d.related_product_ids.includes(p.id);
+          {relatedCandidates.map((candidate) => {
+            const active = d.related_product_ids.includes(candidate.id);
+
             return (
               <button
-                key={p.id}
+                key={candidate.id}
                 type="button"
-                onClick={() => toggleRelated(p.id)}
+                onClick={() => toggleRelated(candidate.id)}
                 className={`rounded-xl border p-3 text-left ${
                   active
                     ? "border-chrome/70 bg-white/[0.05]"
@@ -552,10 +638,10 @@ export function ProductForm({ product }: { product?: Product }) {
                 }`}
               >
                 <span className="block text-[8px] tracking-[0.3em] text-muted-foreground">
-                  {p.product_code}
+                  {candidate.product_code}
                 </span>
                 <span className="mt-1 block text-[9px] uppercase tracking-[0.2em] text-foreground">
-                  {p.name}
+                  {candidate.name}
                 </span>
               </button>
             );
@@ -564,27 +650,39 @@ export function ProductForm({ product }: { product?: Product }) {
       </section>
 
       <section className="glass-panel space-y-5 rounded-[24px] p-6">
-        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">VISIBILITY</h2>
+        <h2 className="font-display text-sm tracking-[0.22em] text-foreground">
+          VISIBILITY
+        </h2>
+
         <div className="flex flex-wrap gap-3">
-          <Toggle label="Featured" checked={d.featured} onChange={(v) => set("featured", v)} />
+          <Toggle
+            label="Featured"
+            checked={d.featured}
+            onChange={(value) => set("featured", value)}
+          />
           <Toggle
             label="New collection"
             checked={d.new_collection}
-            onChange={(v) => set("new_collection", v)}
+            onChange={(value) => set("new_collection", value)}
           />
-          <Toggle label="Archived" checked={d.archived} onChange={(v) => set("archived", v)} />
+          <Toggle
+            label="Archived"
+            checked={d.archived}
+            onChange={(value) => set("archived", value)}
+          />
           <Toggle
             label="WhatsApp order"
             checked={d.whatsapp_available}
-            onChange={(v) => set("whatsapp_available", v)}
+            onChange={(value) => set("whatsapp_available", value)}
           />
         </div>
+
         <Field label="Sort order">
           <input
             className={adminField}
             type="number"
             value={d.sort_order}
-            onChange={(e) => set("sort_order", e.target.value)}
+            onChange={(event) => set("sort_order", event.target.value)}
           />
         </Field>
       </section>
@@ -597,13 +695,19 @@ export function ProductForm({ product }: { product?: Product }) {
         >
           {save.isPending ? "Saving…" : "Save draft"}
         </AdminButton>
+
         <AdminButton
           tone="primary"
           disabled={save.isPending}
           onClick={() => save.mutate({ publish: true })}
         >
-          {save.isPending ? "Publishing…" : product ? "Save & publish" : "Publish object"}
+          {save.isPending
+            ? "Publishing…"
+            : product
+              ? "Save & publish"
+              : "Publish object"}
         </AdminButton>
+
         <AdminButton
           onClick={() => {
             if (!dirty || confirm("Discard unsaved changes?")) {
