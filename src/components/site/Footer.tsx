@@ -2,11 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { LiquidChrome } from "./LiquidChrome";
 import { SITE } from "@/lib/site-config";
 import { useSite } from "@/lib/settings";
+import { useCommerceAvailability } from "@/lib/commerce-availability";
 
-const LINKS = [
+const BASE_LINKS = [
   { label: "SHOP", to: "/shop" as const },
-  { label: "SHOP THE LOOK", to: "/shop-the-look" as const },
-  { label: "BUNDLES", to: "/bundles" as const },
   { label: "NEW COLLECTION", to: "/collection" as const },
   { label: "ARCHIVE", to: "/archive" as const },
   { label: "WISHLIST", to: "/wishlist" as const },
@@ -23,6 +22,16 @@ const LINKS = [
 
 export function Footer() {
   const site = useSite();
+  const { hasShopLooks, hasBundles } = useCommerceAvailability();
+
+  const links = [
+    BASE_LINKS[0],
+    ...(hasShopLooks
+      ? [{ label: "SHOP THE LOOK", to: "/shop-the-look" as const }]
+      : []),
+    ...(hasBundles ? [{ label: "BUNDLES", to: "/bundles" as const }] : []),
+    ...BASE_LINKS.slice(1),
+  ];
 
   return (
     <footer className="relative isolate overflow-hidden pt-32">
@@ -44,7 +53,7 @@ export function Footer() {
           />
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            {LINKS.map((link) => (
+            {links.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
@@ -53,6 +62,7 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
+
             <a
               href={site.instagramUrl}
               target="_blank"
@@ -61,6 +71,7 @@ export function Footer() {
             >
               INSTAGRAM
             </a>
+
             <a
               href={site.wa(`Hi ${site.brand},`)}
               target="_blank"
@@ -69,6 +80,7 @@ export function Footer() {
             >
               WHATSAPP
             </a>
+
             <a
               href={site.emailHref}
               className="text-[10px] uppercase tracking-[0.36em] text-muted-foreground transition-colors hover:text-foreground"
