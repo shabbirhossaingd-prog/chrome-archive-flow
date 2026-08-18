@@ -25,12 +25,13 @@ export const Route = createFileRoute("/shop/$category")({
 
 function CategoryPage() {
   const { category } = Route.useParams();
-  const { data: categories = [] } = useCategories();
-  const { data: products = [], isLoading } = useProducts();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
 
   const current = categories.find((c) => c.slug === category);
   const list = products.filter((p) => p.category === category);
   const index = categories.findIndex((c) => c.slug === category);
+  const loading = categoriesLoading || productsLoading;
 
   return (
     <PageShell>
@@ -43,21 +44,44 @@ function CategoryPage() {
           >
             ← Object directory
           </Link>
-          <Reveal className="mt-8">
-            <PageHeading
-              label={`ZZ / OBJECT / ${String(index >= 0 ? index + 1 : 1).padStart(2, "0")}`}
-              title={current?.name ?? pretty(category)}
-              sub={`${list.length} ${list.length === 1 ? "object" : "objects"} in this series.`}
-            />
-          </Reveal>
 
-          <div className="mt-16 pb-28">
-            <ProductGrid
-              products={list}
-              loading={isLoading}
-              empty="Objects for this series are still in the workshop."
-            />
-          </div>
+          {!loading && (!current || list.length === 0) ? (
+            <div className="py-24 text-center">
+              <span className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground">
+                ZZ / DIRECTORY
+              </span>
+              <h1 className="mt-6 font-display text-3xl tracking-[0.2em] text-foreground sm:text-5xl">
+                NOTHING HERE YET
+              </h1>
+              <p className="mx-auto mt-5 max-w-xl font-editorial text-lg text-muted-foreground">
+                This object category is not currently available.
+              </p>
+              <Link
+                to="/shop"
+                className="mt-10 inline-flex rounded-full border border-chrome/50 px-7 py-4 text-[9px] uppercase tracking-[0.35em] text-foreground"
+              >
+                Back to directory
+              </Link>
+            </div>
+          ) : (
+            <>
+              <Reveal className="mt-8">
+                <PageHeading
+                  label={`ZZ / OBJECT / ${String(index >= 0 ? index + 1 : 1).padStart(2, "0")}`}
+                  title={current?.name ?? pretty(category)}
+                  sub={`${list.length} ${list.length === 1 ? "object" : "objects"} in this series.`}
+                />
+              </Reveal>
+
+              <div className="mt-16 pb-28">
+                <ProductGrid
+                  products={list}
+                  loading={loading}
+                  empty="Objects for this series are still in the workshop."
+                />
+              </div>
+            </>
+          )}
         </div>
       </section>
     </PageShell>
