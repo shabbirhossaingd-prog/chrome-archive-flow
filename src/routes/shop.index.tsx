@@ -1,6 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Layers3, ScanLine } from "lucide-react";
 import { PageShell, PageHeading } from "@/components/site/PageShell";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { Reveal } from "@/components/site/Reveal";
@@ -14,8 +13,7 @@ export const Route = createFileRoute("/shop/")({
       { title: "Shop the Objects — ZZERKOFF" },
       {
         name: "description",
-        content:
-          "The ZZERKOFF object directory: rings, bracelets, chains, pant chains, earrings and eyewear.",
+        content: "The ZZERKOFF object directory. Limited chrome objects for the afterdark.",
       },
       { property: "og:title", content: "Shop the Objects — ZZERKOFF" },
       {
@@ -32,36 +30,51 @@ type ShopJson = {
   per_section?: number;
 };
 
-const DEFAULT_FILTERS = [
-  { slug: "rings", name: "RINGS" },
-  { slug: "bracelets", name: "BRACELETS" },
-  { slug: "chains", name: "CHAINS" },
-  { slug: "pant-chains", name: "PANT CHAINS" },
-  { slug: "earrings", name: "EARRINGS" },
-  { slug: "eyewear", name: "EYEWEAR" },
-];
-
 function ShopPage() {
   const { data: categories = [] } = useCategories();
   const { data: products = [], isLoading, error } = useProducts();
   const { page } = usePage("shop");
   const json = pageJson<ShopJson>(page);
+
   const [active, setActive] = useState("all");
 
   const filters = useMemo(() => {
-    const map = new Map<string, string>();
+    const counts = new Map<string, number>();
 
-    for (const row of DEFAULT_FILTERS) map.set(row.slug, row.name);
-    for (const category of categories) map.set(category.slug, category.name);
     for (const product of products) {
-      if (!map.has(product.category)) {
-        map.set(product.category, prettyCategory(product.category));
+      counts.set(
+        product.category,
+        (counts.get(product.category) ?? 0) + 1,
+      );
+    }
+
+    const visibleCategories = categories
+      .filter((category) => (counts.get(category.slug) ?? 0) > 0)
+      .map((category) => ({
+        slug: category.slug,
+        name: category.name,
+        count: counts.get(category.slug) ?? 0,
+      }));
+
+    const known = new Set(visibleCategories.map((category) => category.slug));
+
+    for (const [slug, count] of counts.entries()) {
+      if (!known.has(slug)) {
+        visibleCategories.push({
+          slug,
+          name: prettyCategory(slug),
+          count,
+        });
       }
     }
 
     return [
-      { slug: "all", name: "ALL" },
-      ...Array.from(map.entries()).map(([slug, name]) => ({ slug, name })),
+      {
+        slug: "all",
+        name: "ALL",
+        count: products.length,
+      },
+      ...visibleCategories,
     ];
   }, [categories, products]);
 
@@ -82,54 +95,24 @@ function ShopPage() {
           className="-left-40 top-10 h-[36rem] w-[36rem]"
           opacity={0.16}
         />
+
         <div className="mx-auto max-w-7xl">
           <Reveal>
             <PageHeading
-              label={page?.label || "ZZERKOFF / OBJECT DIRECTORY"}
-              title={page?.title || "SHOP THE OBJECTS"}
-              sub={page?.subtitle || "Published objects, live from the studio."}
+              label={page?.label || "ZZ / DIRECTORY"}
+              title={page?.title || "THE DIRECTORY"}
+              sub={
+                page?.subtitle ||
+                "Every object is cast in limited numbers. Codes are permanent; stock is not."
+              }
             />
-          </Reveal>
-
-          <Reveal
-            delay={100}
-            className="mt-10 grid gap-3 sm:grid-cols-2 lg:max-w-2xl"
-          >
-            <Link
-              to="/shop-the-look"
-              className="glass-panel flex items-center gap-4 rounded-[22px] p-4 transition-colors hover:border-chrome/50"
-            >
-              <ScanLine className="size-5 text-muted-foreground" />
-              <div>
-                <span className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Styling
-                </span>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-foreground">
-                  Shop the Look
-                </p>
-              </div>
-            </Link>
-            <Link
-              to="/bundles"
-              className="glass-panel flex items-center gap-4 rounded-[22px] p-4 transition-colors hover:border-chrome/50"
-            >
-              <Layers3 className="size-5 text-muted-foreground" />
-              <div>
-                <span className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground">
-                  Curated
-                </span>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-foreground">
-                  Bundle Sets
-                </p>
-              </div>
-            </Link>
           </Reveal>
         </div>
       </section>
 
       <section className="relative px-5 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-7xl">
-          {(json.show_filters ?? true) && (
+          {(json.show_filters ?? true) && products.length > 0 && (
             <Reveal className="flex gap-x-6 gap-y-3 overflow-x-auto border-y border-border/50 py-5 sm:flex-wrap">
               {filters.map((filter) => (
                 <button
@@ -143,12 +126,9 @@ function ShopPage() {
                   }`}
                 >
                   {filter.name}
+
                   <span className="ml-2 text-[8px] opacity-60">
-                    {filter.slug === "all"
-                      ? products.length
-                      : products.filter(
-                          (product) => product.category === filter.slug,
-                        ).length}
+                    {filter.count}
                   </span>
                 </button>
               ))}
@@ -162,7 +142,7 @@ function ShopPage() {
               </p>
             </div>
           ) : (
-            <div className="mt-12">
+            <div className={products.length > 0 ? "mt-12" : "mt-8"}>
               <ProductGrid
                 products={visible}
                 loading={isLoading}
