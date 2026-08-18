@@ -66,7 +66,6 @@ async function upload(file: File) {
   const { error } = await supabase.storage
     .from("product-images")
     .upload(path, optimized, {
-      // UUID paths are immutable, so browsers/CDNs can safely cache them.
       cacheControl: "31536000",
       upsert: false,
       contentType: optimized.type || undefined,
@@ -92,6 +91,7 @@ export function ImageUploader({
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
+
     const room = max - value.length;
     if (room <= 0) {
       toast.error(`Maximum ${max} image${max > 1 ? "s" : ""}`);
@@ -101,11 +101,17 @@ export function ImageUploader({
     setBusy(true);
     try {
       const refs: string[] = [];
+
       for (const file of Array.from(files).slice(0, room)) {
-        if (!file.type.startsWith("image/")) throw new Error("Only image files are allowed");
-        if (file.size > 12 * 1024 * 1024) throw new Error("Each image must be under 12MB");
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Only image files are allowed");
+        }
+        if (file.size > 12 * 1024 * 1024) {
+          throw new Error("Each image must be under 12MB");
+        }
         refs.push(await upload(file));
       }
+
       onChange([...value, ...refs]);
       toast.success("Image uploaded");
     } catch (err) {
@@ -116,23 +122,16 @@ export function ImageUploader({
     }
   };
 
-  const removeOne = async (ref: string, index: number) => {
-    try {
-      if (ref.startsWith("storage:")) {
-        const path = ref.slice("storage:".length);
-        const { error } = await supabase.storage.from("product-images").remove([path]);
-        if (error) throw error;
-      }
-      onChange(value.filter((_, i) => i !== index));
-      toast.success("Image removed");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not remove image");
-    }
+  // Never delete the Storage object before the parent form is successfully saved.
+  const removeOne = (index: number) => {
+    onChange(value.filter((_, i) => i !== index));
+    toast.success("Removed from this form. Save changes to apply.");
   };
 
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= value.length) return;
+
     const next = [...value];
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next);
@@ -143,9 +142,13 @@ export function ImageUploader({
       <span className={adminLabel}>
         {label} ({value.length}/{max})
       </span>
+
       <div className="flex flex-wrap gap-3">
         {value.map((ref, index) => (
-          <div key={`${ref}-${index}`} className="relative rounded-xl border border-border/60 p-1">
+          <div
+            key={`${ref}-${index}`}
+            className="relative rounded-xl border border-border/60 p-1"
+          >
             <SmartImage
               src={ref}
               alt={`${label} ${index + 1}`}
@@ -153,6 +156,7 @@ export function ImageUploader({
               height={200}
               className="size-20 rounded-lg object-cover"
             />
+
             {max > 1 && (
               <div className="mt-1 flex justify-center gap-1">
                 <button
@@ -175,10 +179,11 @@ export function ImageUploader({
                 </button>
               </div>
             )}
+
             <button
               type="button"
-              aria-label="Remove image"
-              onClick={() => void removeOne(ref, index)}
+              aria-label="Remove image from form"
+              onClick={() => removeOne(index)}
               className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full border border-border/70 bg-black text-muted-foreground hover:text-foreground"
             >
               <X className="size-3" />
@@ -201,7 +206,7 @@ export function ImageUploader({
         accept="image/*"
         multiple={max > 1}
         hidden
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(event) => handleFiles(event.target.files)}
       />
     </div>
   );
