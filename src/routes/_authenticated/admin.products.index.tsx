@@ -30,34 +30,63 @@ const STATUS_FILTERS = [
   "ARCHIVED",
 ] as const;
 
+type FilterItem = {
+  key: string;
+  label: string;
+  kind: "status" | "category";
+  categorySlug?: string;
+};
+
 function AdminProducts() {
   const { data: products = [], isLoading } = useAdminProducts();
   const { data: categories = [] } = useAllCategories();
   const { price } = useSite();
   const queryClient = useQueryClient();
+
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("ALL");
 
-  const filters = useMemo(
+  const filters = useMemo<FilterItem[]>(
     () => [
-      ...STATUS_FILTERS,
-      ...categories.map((category) => category.name.toUpperCase()),
+      ...STATUS_FILTERS.map((status) => ({
+        key: status,
+        label: status,
+        kind: "status" as const,
+      })),
+      ...categories.map((category) => ({
+        key: `category:${category.slug}`,
+        label: `${category.name.toUpperCase()}${category.active ? "" : " · HIDDEN"}`,
+        kind: "category" as const,
+        categorySlug: category.slug,
+      })),
     ],
     [categories],
   );
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["products"] });
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["products"] });
 
   const patch = useMutation({
-    mutationFn: async ({ id, values }: { id: string; values: Partial<Product> }) => {
-      const { error } = await supabase.from("products").update(values).eq("id", id);
+    mutationFn: async ({
+      id,
+      values,
+    }: {
+      id: string;
+      values: Partial<Product>;
+    }) => {
+      const { error } = await supabase
+        .from("products")
+        .update(values)
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: () => {
       refresh();
       toast.success("Object updated");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Update failed"),
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Update failed"),
   });
 
   const remove = useMutation({
@@ -69,35 +98,68 @@ function AdminProducts() {
       toast.success("Object deleted");
       refresh();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Delete failed"),
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Delete failed"),
   });
+
+  const quickTogglePublished = (product: Product) => {
+    if (product.published) {
+      patch.mutate({ id: product.id, values: { published: false } });
+      return;
+    }
+
+    if (!product.primary_image) {
+      toast.error("Add a main image before publishing this object");
+      return;
+    }
+
+    if (product.archived) {
+      toast.error("Unarchive this object before publishing it to the storefront");
+      return;
+    }
+
+    const category = categories.find((item) => item.slug === product.category);
+    if (!category?.active) {
+      toast.error("Activate the product category before publishing");
+      return;
+    }
+
+    patch.mutate({ id: product.id, values: { published: true } });
+  };
 
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    const selected = filters.find((item) => item.key === filter);
 
-    return products.filter((p) => {
+    return products.filter((product) => {
       const searchOk =
         !needle ||
-        p.name.toLowerCase().includes(needle) ||
-        p.product_code.toLowerCase().includes(needle) ||
-        p.category.toLowerCase().includes(needle);
+        product.name.toLowerCase().includes(needle) ||
+        product.product_code.toLowerCase().includes(needle) ||
+        product.category.toLowerCase().includes(needle);
 
-      const categoryLabel = prettyCategory(p.category);
-      const filterOk =
-        filter === "ALL" ||
-        filter === categoryLabel ||
-        (filter === "IN STOCK" && !isSoldOut(p) && p.stock_status === "IN STOCK") ||
-        (filter === "LOW STOCK" && p.stock_status === "LOW STOCK") ||
-        (filter === "SOLD OUT" && isSoldOut(p)) ||
-        (filter === "FEATURED" && p.featured) ||
-        (filter === "NEW COLLECTION" && p.new_collection) ||
-        (filter === "DRAFT" && !p.published) ||
-        (filter === "PUBLISHED" && p.published) ||
-        (filter === "ARCHIVED" && p.archived);
+      let filterOk = true;
+
+      if (selected?.kind === "category") {
+        filterOk = product.category === selected.categorySlug;
+      } else {
+        filterOk =
+          filter === "ALL" ||
+          (filter === "IN STOCK" &&
+            !isSoldOut(product) &&
+            product.stock_status === "IN STOCK") ||
+          (filter === "LOW STOCK" && product.stock_status === "LOW STOCK") ||
+          (filter === "SOLD OUT" && isSoldOut(product)) ||
+          (filter === "FEATURED" && product.featured) ||
+          (filter === "NEW COLLECTION" && product.new_collection) ||
+          (filter === "DRAFT" && !product.published) ||
+          (filter === "PUBLISHED" && product.published) ||
+          (filter === "ARCHIVED" && product.archived);
+      }
 
       return searchOk && filterOk;
     });
-  }, [products, q, filter]);
+  }, [products, q, filter, filters]);
 
   return (
     <div className="space-y-7 pb-20">
@@ -110,6 +172,7 @@ function AdminProducts() {
             OBJECTS
           </h1>
         </div>
+
         <div className="flex flex-wrap gap-2">
           <Link
             to="/admin/categories"
@@ -130,22 +193,22 @@ function AdminProducts() {
         <input
           className={adminField}
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(event) => setQ(event.target.value)}
           placeholder="SEARCH NAME OR PRODUCT CODE"
         />
         <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
-          {filters.map((f) => (
+          {filters.map((item) => (
             <button
-              key={f}
+              key={item.key}
               type="button"
-              onClick={() => setFilter(f)}
+              onClick={() => setFilter(item.key)}
               className={`shrink-0 rounded-lg border px-3 py-2 text-[8px] uppercase tracking-[0.25em] ${
-                filter === f
+                filter === item.key
                   ? "border-chrome/60 bg-white/[0.05] text-foreground"
                   : "border-border/50 text-muted-foreground"
               }`}
             >
-              {f}
+              {item.label}
             </button>
           ))}
         </div>
@@ -172,56 +235,63 @@ function AdminProducts() {
       )}
 
       <div className="space-y-3">
-        {visible.map((p) => (
+        {visible.map((product) => (
           <div
-            key={p.id}
+            key={product.id}
             className="glass-panel flex flex-wrap items-center gap-4 rounded-[22px] p-4"
           >
             <SmartImage
-              src={p.primary_image}
-              alt={p.name}
+              src={product.primary_image}
+              alt={product.name}
               width={120}
               height={150}
               className="size-16 shrink-0 rounded-xl object-cover grayscale"
             />
+
             <div className="min-w-[12rem] flex-1">
               <span className="block text-[9px] tracking-[0.35em] text-muted-foreground">
-                {p.product_code} · {prettyCategory(p.category)}
+                {product.product_code} · {prettyCategory(product.category)}
               </span>
               <p className="mt-2 text-[11px] uppercase tracking-[0.22em] text-foreground">
-                {p.name}
+                {product.name}
               </p>
               <p className="mt-1 text-[10px] tracking-[0.18em] text-chrome">
-                {price(p.price)} · QTY {p.quantity_available} · {p.stock_status}
+                {price(product.price)} · QTY {product.quantity_available} ·{" "}
+                {product.stock_status}
               </p>
               <p className="mt-1 text-[8px] uppercase tracking-[0.25em] text-muted-foreground">
-                {p.published ? "PUBLISHED" : "DRAFT"}
-                {p.archived ? " · ARCHIVED" : " · ACTIVE"}
-                {p.featured ? " · FEATURED" : ""}
-                {p.new_collection ? " · NEW COLLECTION" : ""}
+                {product.published ? "PUBLISHED" : "DRAFT"}
+                {product.archived ? " · ARCHIVED" : " · ACTIVE"}
+                {product.featured ? " · FEATURED" : ""}
+                {product.new_collection ? " · NEW COLLECTION" : ""}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <AdminButton
-                onClick={() =>
-                  patch.mutate({ id: p.id, values: { published: !p.published } })
-                }
+                disabled={patch.isPending}
+                onClick={() => quickTogglePublished(product)}
               >
-                {p.published ? "Unpublish" : "Publish"}
+                {product.published ? "Unpublish" : "Publish"}
               </AdminButton>
+
               <Link
                 to="/admin/products/$id"
-                params={{ id: p.id }}
+                params={{ id: product.id }}
                 className="rounded-xl border border-chrome/60 px-5 py-3 text-[9px] uppercase tracking-[0.35em] text-foreground"
               >
                 Edit
               </Link>
+
               <AdminButton
                 tone="danger"
                 onClick={() => {
-                  if (confirm(`DELETE THIS OBJECT?\n\n${p.product_code} — ${p.name}`)) {
-                    remove.mutate(p.id);
+                  if (
+                    confirm(
+                      `DELETE THIS OBJECT?\n\n${product.product_code} — ${product.name}`,
+                    )
+                  ) {
+                    remove.mutate(product.id);
                   }
                 }}
               >
