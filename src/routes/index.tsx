@@ -19,7 +19,7 @@ import campaign2 from "@/assets/campaign-2.webp";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZZERKOFF — Objects for the Afterdark" },
+      { title: "ZZERKOFF" },
       {
         name: "description",
         content:
