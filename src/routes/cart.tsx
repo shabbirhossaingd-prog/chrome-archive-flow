@@ -8,6 +8,7 @@ import {
   updateCartQuantity,
   useCart,
 } from "@/lib/commerce";
+import { isSoldOut, useProducts } from "@/lib/products";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/cart")({
       { name: "robots", content: "noindex,nofollow" },
       {
         name: "description",
-        content: "ZZERKOFF cart. Multi-item checkout is being prepared.",
+        content: "ZZERKOFF cart.",
       },
     ],
   }),
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const items = useCart();
   const site = useSite();
+  const { data: products = [] } = useProducts();
+
   const subtotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
@@ -36,9 +39,9 @@ function CartPage() {
       <section className="px-5 pb-24 pt-32 sm:px-8 sm:pt-40">
         <div className="mx-auto max-w-5xl">
           <PageHeading
-            label="ZZERKOFF / FUTURE CHECKOUT"
+            label="ZZERKOFF / CART"
             title="CART"
-            sub="Saved now. Multi-object checkout activates later."
+            sub="Saved objects stay here until you remove them."
           />
 
           {items.length === 0 ? (
@@ -57,76 +60,156 @@ function CartPage() {
           ) : (
             <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_340px]">
               <div className="space-y-3">
-                {items.map((item) => (
-                  <article
-                    key={item.key}
-                    className="glass-panel flex gap-4 rounded-[24px] p-4"
-                  >
-                    <SmartImage
-                      src={item.image}
-                      alt={item.name}
-                      width={180}
-                      height={220}
-                      className="h-28 w-24 shrink-0 rounded-2xl object-cover grayscale"
-                    />
+                {items.map((item) => {
+                  const product =
+                    item.kind === "product"
+                      ? products.find((row) => row.id === item.id)
+                      : null;
 
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground">
-                        {item.code} · {item.kind}
-                      </span>
-                      <h2 className="mt-2 truncate font-display text-sm tracking-[0.12em] text-foreground">
-                        {item.name}
-                      </h2>
-                      <p className="mt-2 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
-                        {[item.color, item.size, item.finish]
-                          .filter(Boolean)
-                          .join(" / ") || "STANDARD"}
-                      </p>
-                      <p className="mt-3 text-xs tracking-[0.12em] text-chrome">
-                        {site.price(item.price)}
-                      </p>
+                  const bundleIds = item.kind === "bundle"
+                    ? item.productIds ?? []
+                    : [];
 
-                      <div className="mt-4 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateCartQuantity(item.key, item.quantity - 1)
-                          }
-                          className="grid size-8 place-items-center rounded-full border border-border/60 text-muted-foreground"
-                        >
-                          <Minus className="size-3" />
-                        </button>
-                        <span className="min-w-8 text-center text-[10px] text-foreground">
-                          {item.quantity}
+                  const bundleProducts = bundleIds
+                    .map((id) => products.find((row) => row.id === id))
+                    .filter(Boolean);
+
+                  const bundleReady =
+                    item.kind === "bundle" &&
+                    bundleIds.length > 0 &&
+                    bundleProducts.length === bundleIds.length &&
+                    bundleProducts.every((row) => row && !isSoldOut(row));
+
+                  const colorStock =
+                    (product?.color_stock ?? {}) as Record<string, number>;
+
+                  const maxByColor =
+                    product && item.color
+                      ? Number(colorStock[item.color] ?? 0)
+                      : product?.quantity_available ?? 0;
+
+                  const productMax = product
+                    ? Math.max(
+                        0,
+                        Math.min(product.quantity_available, maxByColor),
+                      )
+                    : 0;
+
+                  const bundleMax = bundleReady
+                    ? Math.max(
+                        0,
+                        Math.min(
+                          ...bundleProducts.map(
+                            (row) => row?.quantity_available ?? 0,
+                          ),
+                        ),
+                      )
+                    : 0;
+
+                  const maxAvailable =
+                    item.kind === "product" ? productMax : bundleMax;
+
+                  const unavailable =
+                    item.kind === "product"
+                      ? !product || isSoldOut(product) || maxAvailable <= 0
+                      : !bundleReady || maxAvailable <= 0;
+
+                  const atLimit =
+                    Number.isFinite(maxAvailable) &&
+                    item.quantity >= maxAvailable;
+
+                  return (
+                    <article
+                      key={item.key}
+                      className="glass-panel flex gap-4 rounded-[24px] p-4"
+                    >
+                      <SmartImage
+                        src={item.image}
+                        alt={item.name}
+                        width={180}
+                        height={220}
+                        className="h-28 w-24 shrink-0 rounded-2xl object-cover grayscale"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[8px] uppercase tracking-[0.28em] text-muted-foreground">
+                          {item.code} · {item.kind}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateCartQuantity(item.key, item.quantity + 1)
-                          }
-                          className="grid size-8 place-items-center rounded-full border border-border/60 text-muted-foreground"
-                        >
-                          <Plus className="size-3" />
-                        </button>
 
-                        <button
-                          type="button"
-                          onClick={() => removeCartItem(item.key)}
-                          className="ml-auto inline-flex items-center gap-2 text-[8px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
-                        >
-                          <Trash2 className="size-3.5" />
-                          Remove
-                        </button>
+                        <h2 className="mt-2 truncate font-display text-sm tracking-[0.12em] text-foreground">
+                          {item.name}
+                        </h2>
+
+                        <p className="mt-2 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                          {[item.color, item.size, item.finish]
+                            .filter(Boolean)
+                            .join(" / ") || "STANDARD"}
+                        </p>
+
+                        <p className="mt-3 text-xs tracking-[0.12em] text-chrome">
+                          {site.price(item.price)}
+                        </p>
+
+                        {unavailable && (
+                          <p className="mt-3 text-[8px] uppercase tracking-[0.25em] text-chrome">
+                            This item is no longer available. Remove it from cart.
+                          </p>
+                        )}
+
+                        {!unavailable &&
+                          item.kind === "product" &&
+                          Number.isFinite(maxAvailable) && (
+                            <p className="mt-2 text-[8px] uppercase tracking-[0.22em] text-muted-foreground">
+                              {maxAvailable} available
+                            </p>
+                          )}
+
+                        <div className="mt-4 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateCartQuantity(item.key, item.quantity - 1)
+                            }
+                            className="grid size-8 place-items-center rounded-full border border-border/60 text-muted-foreground"
+                          >
+                            <Minus className="size-3" />
+                          </button>
+
+                          <span className="min-w-8 text-center text-[10px] text-foreground">
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            type="button"
+                            disabled={unavailable || atLimit}
+                            onClick={() =>
+                              updateCartQuantity(item.key, item.quantity + 1)
+                            }
+                            className="grid size-8 place-items-center rounded-full border border-border/60 text-muted-foreground disabled:opacity-30"
+                          >
+                            <Plus className="size-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => removeCartItem(item.key)}
+                            className="ml-auto inline-flex items-center gap-2 text-[8px] uppercase tracking-[0.22em] text-muted-foreground hover:text-foreground"
+                          >
+                            <Trash2 className="size-3.5" />
+                            Remove
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
 
               <aside className="glass-panel h-fit rounded-[26px] p-5 lg:sticky lg:top-32">
                 <span className="text-[8px] uppercase tracking-[0.34em] text-muted-foreground">
-                  Order summary
+                  Cart summary
                 </span>
+
                 <div className="mt-5 flex items-center justify-between border-b border-border/50 pb-4">
                   <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
                     Subtotal
@@ -136,37 +219,8 @@ function CartPage() {
                   </span>
                 </div>
 
-                <label className="mt-5 block">
-                  <span className="text-[8px] uppercase tracking-[0.3em] text-muted-foreground">
-                    Promo code
-                  </span>
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      disabled
-                      placeholder="FUTURE CART CHECKOUT"
-                      className="min-w-0 flex-1 rounded-2xl border border-border/60 bg-white/[0.02] px-4 py-3 text-[9px] tracking-[0.12em] text-muted-foreground"
-                    />
-                    <button
-                      type="button"
-                      disabled
-                      className="rounded-2xl border border-border/50 px-4 text-[8px] uppercase tracking-[0.22em] text-muted-foreground opacity-60"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </label>
-
-                <button
-                  type="button"
-                  disabled
-                  className="mt-6 w-full rounded-full border border-chrome/40 bg-white/[0.03] px-6 py-5 text-[9px] uppercase tracking-[0.32em] text-muted-foreground opacity-70"
-                >
-                  Checkout — coming later
-                </button>
-
-                <p className="mt-4 text-[9px] leading-relaxed text-muted-foreground">
-                  Cart is active for saving objects and bundles. Your current single-object
-                  Place Order flow remains unchanged and usable.
+                <p className="mt-5 text-[9px] leading-relaxed text-muted-foreground">
+                  Cart respects current object availability. Order behavior is unchanged.
                 </p>
               </aside>
             </div>
