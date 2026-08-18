@@ -240,10 +240,12 @@ export function OrderModal({
     setPromoBusy(true);
     setError("");
 
+    const normalizedCode = promoInput.trim().toUpperCase();
+
     const { data, error: promoError } = await (supabase as any).rpc(
       "preview_promo_code",
       {
-        p_code: promoInput.trim(),
+        p_code: normalizedCode,
         p_subtotal: subtotal,
       },
     );
@@ -263,11 +265,16 @@ export function OrderModal({
       return;
     }
 
-    setPromo({
+    const appliedPromo = {
       ...row,
+      code: String(row.code || normalizedCode).toUpperCase(),
       discount_amount: Number(row.discount_amount || 0),
       final_total: Number(row.final_total || subtotal),
-    });
+    };
+
+    setPromo(appliedPromo);
+    setPromoInput(appliedPromo.code);
+    setError("");
   };
 
   const submit = async () => {
@@ -488,6 +495,13 @@ export function OrderModal({
                     onChange={(event) => {
                       setPromoInput(event.target.value.toUpperCase());
                       if (promo) setPromo(null);
+                      if (error) setError("");
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void applyPromo();
+                      }
                     }}
                     placeholder="ENTER CODE"
                     className={`${inputClass} min-w-0 flex-1 py-3`}
@@ -495,18 +509,33 @@ export function OrderModal({
                   <button
                     type="button"
                     onClick={applyPromo}
-                    disabled={promoBusy}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-chrome/45 px-4 text-[8px] uppercase tracking-[0.23em] text-foreground disabled:opacity-50"
+                    disabled={promoBusy || !!promo?.valid}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-chrome/45 px-4 text-[8px] uppercase tracking-[0.23em] text-foreground disabled:opacity-70"
                   >
-                    <TicketPercent className="size-3.5" />
-                    {promoBusy ? "Checking" : "Apply"}
+                    {promo?.valid ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <TicketPercent className="size-3.5" />
+                    )}
+                    {promoBusy ? "Checking" : promo?.valid ? "Applied" : "Apply"}
                   </button>
                 </div>
                 {promo?.valid ? (
-                  <p className="mt-3 text-[9px] text-chrome">
-                    {promo.code}: −{currencySymbol}
-                    {promo.discount_amount.toLocaleString("en-US")}
-                  </p>
+                  <div className="mt-3 rounded-xl border border-chrome/35 bg-white/[0.025] px-3 py-3">
+                    <p className="text-[9px] uppercase tracking-[0.24em] text-chrome">
+                      ✓ {promo.code} APPLIED
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[9px] text-muted-foreground">
+                      <span>
+                        Discount −{currencySymbol}
+                        {promo.discount_amount.toLocaleString("en-US")}
+                      </span>
+                      <span className="text-foreground">
+                        New total {currencySymbol}
+                        {promo.final_total.toLocaleString("en-US")}
+                      </span>
+                    </div>
+                  </div>
                 ) : null}
               </div>
 
