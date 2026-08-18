@@ -12,6 +12,7 @@ import {
 } from "@/lib/products";
 import { useSite } from "@/lib/settings";
 import { SmartImage } from "@/components/site/SmartImage";
+import { cleanupUnusedMedia, removeUnusedMediaRefs } from "@/lib/media-cleanup";
 import { AdminButton, adminField } from "@/components/admin/AdminUI";
 
 export const Route = createFileRoute("/_authenticated/admin/products/")({
@@ -90,16 +91,52 @@ function AdminProducts() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
+    mutationFn: async (product: Product) => {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", product.id);
+
       if (error) throw error;
+
+      let mediaCleanupFailed = false;
+
+      try {
+        await removeUnusedMediaRefs([
+          product.primary_image,
+          ...(product.gallery_images ?? []),
+        ]);
+      } catch (error) {
+        mediaCleanupFailed = true;
+        console.warn("Could not clean deleted product media", error);
+      }
+
+      return { mediaCleanupFailed };
     },
-    onSuccess: () => {
+    onSuccess: ({ mediaCleanupFailed }) => {
       toast.success("Object deleted");
+      if (mediaCleanupFailed) {
+        toast.warning("Object deleted, but media cleanup can be retried later.");
+      }
       refresh();
     },
     onError: (err) =>
       toast.error(err instanceof Error ? err.message : "Delete failed"),
+  });
+
+  const cleanMedia = useMutation({
+    mutationFn: () => cleanupUnusedMedia(24),
+    onSuccess: ({ removed, scanned }) => {
+      if (removed > 0) {
+        toast.success(`Removed ${removed} unused image${removed === 1 ? "" : "s"}.`);
+      } else {
+        toast.success(`Media is clean. ${scanned} file${scanned === 1 ? "" : "s"} checked.`);
+      }
+    },
+    onError: (err) =>
+      toast.error(
+        err instanceof Error ? err.message : "Could not clean unused media",
+      ),
   });
 
   const quickTogglePublished = (product: Product) => {
@@ -174,6 +211,21 @@ function AdminProducts() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <AdminButton
+            disabled={cleanMedia.isPending}
+            onClick={() => {
+              if (
+                confirm(
+                  "CLEAN UNUSED MEDIA?\n\nOnly unreferenced product-images files older than 24 hours will be deleted.",
+                )
+              ) {
+                cleanMedia.mutate();
+              }
+            }}
+          >
+            {cleanMedia.isPending ? "Cleaning…" : "Clean unused media"}
+          </AdminButton>
+
           <Link
             to="/admin/categories"
             className="rounded-xl border border-border/60 px-5 py-3 text-[9px] uppercase tracking-[0.35em] text-muted-foreground hover:text-foreground"
@@ -291,7 +343,7 @@ function AdminProducts() {
                       `DELETE THIS OBJECT?\n\n${product.product_code} — ${product.name}`,
                     )
                   ) {
-                    remove.mutate(product.id);
+                    remove.mutate(product);
                   }
                 }}
               >
