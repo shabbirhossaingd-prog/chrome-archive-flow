@@ -177,15 +177,20 @@ function AdminCategories() {
                 type="button"
                 onClick={() => {
                   if (dirty && !confirm("Discard unsaved category changes?")) return;
-                  setDraft({
-                    id: category.id,
-                    name: category.name,
-                    slug: category.slug,
-                    code_prefix: category.code_prefix,
-                    image_url: category.image_url ?? "",
-                    active: category.active,
-                    sort_order: String(category.sort_order),
-                  });
+             setDraft({
+  id: category.id,
+  name: category.name,
+  slug: category.slug,
+  code_prefix: category.code_prefix,
+  image_url: category.image_url ?? "",
+
+  seo_title: category.seo_title ?? "",
+  seo_description: category.seo_description ?? "",
+  og_image: category.og_image ?? "",
+
+  active: category.active,
+  sort_order: String(category.sort_order),
+});
                   setDirty(false);
                 }}
                 className={`glass-panel flex w-full items-center gap-4 rounded-[20px] p-4 text-left ${
