@@ -136,6 +136,22 @@ export const adminProductsQuery = queryOptions({
   },
 });
 
+export const categoryBySlugQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["categories", "public", "slug", slug],
+    queryFn: async (): Promise<Category | null> => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("slug", slug)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return (data as Category | null) ?? null;
+    },
+  });
 export const categoriesQuery = queryOptions({
   queryKey: ["categories", "active"],
   queryFn: async (): Promise<Category[]> => {
