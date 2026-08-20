@@ -9,7 +9,12 @@ export type Product = ProductRow & {
   color_stock?: Record<string, number>;
 };
 
-export type Category = Database["public"]["Tables"]["categories"]["Row"];
+export type Category =
+  Database["public"]["Tables"]["categories"]["Row"] & {
+    seo_title?: string;
+    seo_description?: string;
+    og_image?: string;
+  };
 
 const PUBLIC_PRODUCT_FIELDS = [
   "id",
