@@ -18,6 +18,11 @@ type Draft = {
   slug: string;
   code_prefix: string;
   image_url: string;
+
+  seo_title: string;
+  seo_description: string;
+  og_image: string;
+
   active: boolean;
   sort_order: string;
 };
@@ -27,6 +32,11 @@ const blankDraft = (): Draft => ({
   slug: "",
   code_prefix: "",
   image_url: "",
+
+  seo_title: "",
+  seo_description: "",
+  og_image: "",
+
   active: true,
   sort_order: "0",
 });
