@@ -102,13 +102,18 @@ function AdminCategories() {
       if (prefixConflict?.length) throw new Error("That code prefix is already in use");
 
       const payload = {
-        name,
-        slug,
-        code_prefix: codePrefix,
-        image_url: draft.image_url || null,
-        active: draft.active,
-        sort_order: Number(draft.sort_order || 0),
-      };
+  name,
+  slug,
+  code_prefix: codePrefix,
+  image_url: draft.image_url || null,
+
+  seo_title: draft.seo_title.trim(),
+  seo_description: draft.seo_description.trim(),
+  og_image: draft.og_image || "",
+
+  active: draft.active,
+  sort_order: Number(draft.sort_order || 0),
+} as any;
 
       if (draft.id) {
         const current = categories.find((item) => item.id === draft.id);
