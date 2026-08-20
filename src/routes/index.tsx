@@ -15,7 +15,104 @@ import { pageJson, useCurrentCollection, usePage } from "@/lib/cms";
 import { useSite } from "@/lib/settings";
 import campaign1 from "@/assets/campaign-1.webp";
 import campaign2 from "@/assets/campaign-2.webp";
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      // Browser tab stays ONLY ZZERKOFF
+      {
+        title: "ZZERKOFF",
+      },
 
+      {
+        name: "description",
+        content:
+          "Shop ZZERKOFF unisex chrome rings, chains and bracelets inspired by Y2K, gothic and underground fashion. Alternative accessories for the afterdark.",
+      },
+
+      {
+        name: "robots",
+        content:
+          "index,follow,max-image-preview:large",
+      },
+
+      {
+        property: "og:title",
+        content: "ZZERKOFF",
+      },
+
+      {
+        property: "og:description",
+        content:
+          "Unisex chrome rings, chains and bracelets inspired by Y2K, gothic, vintage metal and underground fashion.",
+      },
+
+      {
+        property: "og:type",
+        content: "website",
+      },
+
+      {
+        property: "og:site_name",
+        content: "ZZERKOFF",
+      },
+
+      {
+        property: "og:url",
+        content: "https://zzerkoff.vercel.app/",
+      },
+
+      {
+        property: "og:image",
+        content:
+          "https://zzerkoff.vercel.app/images/zzerkoff-logo.png",
+      },
+
+      {
+        property: "og:image:alt",
+        content: "ZZERKOFF",
+      },
+
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+
+      {
+        name: "twitter:title",
+        content: "ZZERKOFF",
+      },
+
+      {
+        name: "twitter:description",
+        content:
+          "Unisex chrome accessories inspired by Y2K, gothic and underground fashion.",
+      },
+
+      {
+        name: "twitter:image",
+        content:
+          "https://zzerkoff.vercel.app/images/zzerkoff-logo.png",
+      },
+    ],
+
+    links: [
+      {
+        rel: "canonical",
+        href: "https://zzerkoff.vercel.app/",
+      },
+
+      {
+        rel: "preload",
+        href: "/images/zzerkoff-logo.webp",
+        as: "image",
+        type: "image/webp",
+        fetchPriority: "high",
+      },
+    ],
+  }),
+
+  component: Index,
+});
 const productSchema = {
   "@context": "https://schema.org",
 
