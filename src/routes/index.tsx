@@ -16,41 +16,113 @@ import { useSite } from "@/lib/settings";
 import campaign1 from "@/assets/campaign-1.webp";
 import campaign2 from "@/assets/campaign-2.webp";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "ZZERKOFF" },
-      {
-        name: "description",
-        content:
-          "Shop the current ZZERKOFF collection: unisex chrome rings, chains, bracelets and alternative accessories.",
+const productSchema = {
+  "@context": "https://schema.org",
+
+  "@graph": [
+    {
+      "@type": "Product",
+
+      "@id": `${productUrl}#product`,
+
+      name: product.name,
+
+      sku: product.product_code,
+
+      mpn: product.product_code,
+
+      url: productUrl,
+
+      description:
+        product.short_description ||
+        product.full_description,
+
+      image: images.map((src) =>
+        absoluteSmartImageUrl(src),
+      ),
+
+      category: pretty(product.category),
+
+      ...(product.material
+        ? {
+            material: product.material,
+          }
+        : {}),
+
+      ...(colors.length > 0
+        ? {
+            color: colors.join(", "),
+          }
+        : {}),
+
+      brand: {
+        "@type": "Brand",
+        name: "ZZERKOFF",
       },
-      {
-        property: "og:title",
-        content: "ZZERKOFF — Objects for the Afterdark",
+
+      offers: {
+        "@type": "Offer",
+
+        url: productUrl,
+
+        priceCurrency: site.currencyCode,
+
+        price: Number(product.price),
+
+        availability: soldOut
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+
+        itemCondition:
+          "https://schema.org/NewCondition",
+
+        seller: {
+          "@type": "Organization",
+          name: "ZZERKOFF",
+          url: "https://zzerkoff.vercel.app/",
+        },
       },
-      {
-        property: "og:description",
-        content:
-          "Current ZZERKOFF objects. Unisex chrome accessories. Underground. Afterdark.",
-      },
-    ],
-    links: [
-      {
-        rel: "canonical",
-        href: "https://zzerkoff.vercel.app/",
-      },
-      {
-        rel: "preload",
-        href: "/images/zzerkoff-logo.webp",
-        as: "image",
-        type: "image/webp",
-        fetchPriority: "high",
-      },
-    ],
-  }),
-  component: Index,
-});
+    },
+
+    {
+      "@type": "BreadcrumbList",
+
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "ZZERKOFF",
+          item: "https://zzerkoff.vercel.app/",
+        },
+
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Shop",
+          item:
+            "https://zzerkoff.vercel.app/shop",
+        },
+
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: pretty(product.category),
+          item:
+            `https://zzerkoff.vercel.app/shop/${encodeURIComponent(
+              product.category,
+            )}`,
+        },
+
+        {
+          "@type": "ListItem",
+          position: 4,
+          name: product.name,
+          item: productUrl,
+        },
+      ],
+    },
+  ],
+};
 
 type HomeSection = {
   id: string;
