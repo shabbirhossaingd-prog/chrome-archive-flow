@@ -279,6 +279,57 @@ function AdminCategories() {
 
           <ImageUploader
             label="Category thumbnail"
+            <div className="border-t border-border/60 pt-6">
+  <span className="text-[9px] uppercase tracking-[0.4em] text-chrome">
+    SEO / SEARCH
+  </span>
+
+  <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+    Leave fields blank to automatically generate SEO from the category name.
+  </p>
+</div>
+
+<Field label="SEO title">
+  <input
+    className={adminField}
+    value={draft.seo_title}
+    maxLength={70}
+    onChange={(event) =>
+      set("seo_title", event.target.value)
+    }
+    placeholder="Chrome Rings — ZZERKOFF"
+  />
+
+  <p className="mt-2 text-[9px] text-muted-foreground">
+    {draft.seo_title.length}/70
+  </p>
+</Field>
+
+<Field label="SEO description">
+  <textarea
+    className={adminField}
+    value={draft.seo_description}
+    rows={4}
+    maxLength={180}
+    onChange={(event) =>
+      set("seo_description", event.target.value)
+    }
+    placeholder="Shop unisex chrome rings inspired by Y2K, gothic and underground fashion."
+  />
+
+  <p className="mt-2 text-[9px] text-muted-foreground">
+    {draft.seo_description.length}/180
+  </p>
+</Field>
+
+<ImageUploader
+  label="SEO / Social share image"
+  max={1}
+  value={draft.og_image ? [draft.og_image] : []}
+  onChange={(next) =>
+    set("og_image", next[0] ?? "")
+  }
+/>
             max={1}
             value={draft.image_url ? [draft.image_url] : []}
             onChange={(next) => set("image_url", next[0] ?? "")}
