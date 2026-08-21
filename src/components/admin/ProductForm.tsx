@@ -5,7 +5,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -18,16 +17,9 @@ import {
 
 import { adminCollectionsQuery } from "@/lib/cms";
 import { STOCK_OPTIONS } from "@/lib/site-config";
-
-import {
-  peekProductCode,
-  reserveProductCode,
-} from "@/lib/admin.functions";
-
 import { removeUnusedMediaRefs } from "@/lib/media-cleanup";
 
 import { ImageUploader } from "./ImageUploader";
-
 import {
   AdminButton,
   Field,
@@ -35,10 +27,7 @@ import {
   adminField,
 } from "./AdminUI";
 
-type SaveAction =
-  | "save"
-  | "publish"
-  | "unpublish";
+type SaveAction = "save" | "publish" | "unpublish";
 
 type Draft = {
   name: string;
@@ -91,9 +80,8 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const csv = (
-  values: string[] | null | undefined,
-) => (values ?? []).join(", ");
+const csv = (values: string[] | null | undefined) =>
+  (values ?? []).join(", ");
 
 const fromCsv = (value: string) =>
   value
@@ -101,131 +89,86 @@ const fromCsv = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-function toDraft(
-  product?: Product,
-): Draft {
+const cleanRefs = (
+  values: Array<string | null | undefined>,
+): string[] =>
+  values.filter(
+    (value): value is string =>
+      typeof value === "string" && value.length > 0,
+  );
+
+function getErrorMessage(
+  error: unknown,
+  fallback = "Could not save object",
+) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error
+  ) {
+    const message = (error as { message?: unknown }).message;
+
+    if (typeof message === "string" && message.trim()) {
+      return message;
+    }
+  }
+
+  return fallback;
+}
+
+function toDraft(product?: Product): Draft {
   return {
     name: product?.name ?? "",
-
     slug: product?.slug ?? "",
+    category: product?.category ?? "",
 
-    category:
-      product?.category ?? "",
-
-    price: product
-      ? String(product.price)
-      : "",
-
+    price: product ? String(product.price) : "",
     old_price:
       product?.old_price != null
         ? String(product.old_price)
         : "",
 
     quantity_available: product
-      ? String(
-          product.quantity_available,
-        )
+      ? String(product.quantity_available)
       : "1",
 
-    stock_status:
-      product?.stock_status ??
-      "IN STOCK",
+    stock_status: product?.stock_status ?? "IN STOCK",
 
-    short_description:
-      product?.short_description ??
-      "",
+    short_description: product?.short_description ?? "",
+    full_description: product?.full_description ?? "",
 
-    full_description:
-      product?.full_description ??
-      "",
+    material: product?.material ?? "",
+    finish: csv(product?.finish),
+    fit_gender: product?.fit_gender ?? "UNISEX",
+    tags: csv(product?.tags),
 
-    material:
-      product?.material ?? "",
+    size_type: product?.size_type ?? "ONE SIZE",
+    sizes: csv(product?.sizes),
+    size_description: product?.size_description ?? "",
+    size_guide: product?.size_guide ?? "",
 
-    finish: csv(
-      product?.finish,
-    ),
+    details_content: product?.details_content ?? "",
+    material_content: product?.material_content ?? "",
+    care: product?.care ?? "",
+    delivery: product?.delivery ?? "",
 
-    fit_gender:
-      product?.fit_gender ??
-      "UNISEX",
+    collection_id: product?.collection_id ?? "",
+    related_product_ids: product?.related_product_ids ?? [],
 
-    tags: csv(
-      product?.tags,
-    ),
+    featured: product?.featured ?? false,
+    new_collection: product?.new_collection ?? false,
+    archived: product?.archived ?? false,
+    published: product?.published ?? false,
+    whatsapp_available: product?.whatsapp_available ?? true,
 
-    size_type:
-      product?.size_type ??
-      "ONE SIZE",
+    primary_image: product?.primary_image ?? "",
+    gallery_images: product?.gallery_images ?? [],
 
-    sizes: csv(
-      product?.sizes,
-    ),
-
-    size_description:
-      product?.size_description ??
-      "",
-
-    size_guide:
-      product?.size_guide ??
-      "",
-
-    details_content:
-      product?.details_content ??
-      "",
-
-    material_content:
-      product?.material_content ??
-      "",
-
-    care:
-      product?.care ?? "",
-
-    delivery:
-      product?.delivery ?? "",
-
-    collection_id:
-      product?.collection_id ??
-      "",
-
-    related_product_ids:
-      product
-        ?.related_product_ids ??
-      [],
-
-    featured:
-      product?.featured ?? false,
-
-    new_collection:
-      product
-        ?.new_collection ??
-      false,
-
-    archived:
-      product?.archived ?? false,
-
-    published:
-      product?.published ?? false,
-
-    whatsapp_available:
-      product
-        ?.whatsapp_available ??
-      true,
-
-    primary_image:
-      product?.primary_image ??
-      "",
-
-    gallery_images:
-      product
-        ?.gallery_images ??
-      [],
-
-    sort_order: product
-      ? String(
-          product.sort_order,
-        )
-      : "0",
+    sort_order: product ? String(product.sort_order) : "0",
   };
 }
 
@@ -234,42 +177,26 @@ async function uniqueSlug(
   currentId?: string,
 ) {
   const clean =
-    slugify(base) ||
-    `object-${Date.now()}`;
+    slugify(base) || `object-${Date.now()}`;
 
-  for (
-    let index = 0;
-    index < 100;
-    index += 1
-  ) {
+  for (let index = 0; index < 100; index += 1) {
     const candidate =
-      index === 0
-        ? clean
-        : `${clean}-${index + 1}`;
+      index === 0 ? clean : `${clean}-${index + 1}`;
 
     let query = supabase
       .from("products")
       .select("id")
-      .eq(
-        "slug",
-        candidate,
-      )
+      .eq("slug", candidate)
       .limit(1);
 
     if (currentId) {
-      query = query.neq(
-        "id",
-        currentId,
-      );
+      query = query.neq("id", currentId);
     }
 
-    const {
-      data,
-      error,
-    } = await query;
+    const { data, error } = await query;
 
     if (error) {
-      throw error;
+      throw new Error(error.message);
     }
 
     if (!data?.length) {
@@ -277,9 +204,7 @@ async function uniqueSlug(
     }
   }
 
-  return `${clean}-${crypto
-    .randomUUID()
-    .slice(0, 8)}`;
+  return `${clean}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export function ProductForm({
@@ -287,114 +212,71 @@ export function ProductForm({
 }: {
   product?: Product;
 }) {
-  const [
-    d,
-    setD,
-  ] = useState<Draft>(() =>
+  const [d, setD] = useState<Draft>(() =>
     toDraft(product),
   );
 
-  const [
-    dirty,
-    setDirty,
-  ] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [showValidation, setShowValidation] =
+    useState(false);
 
-  const [
-    showValidation,
-    setShowValidation,
-  ] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const navigate =
-    useNavigate();
+  const { data: categories = [] } =
+    useAllCategories();
 
-  const queryClient =
-    useQueryClient();
+  const { data: products = [] } =
+    useAdminProducts();
 
-  const {
-    data: categories = [],
-  } = useAllCategories();
-
-  const {
-    data: products = [],
-  } = useAdminProducts();
-
-  const {
-    data: collections = [],
-  } = useQuery(
+  const { data: collections = [] } = useQuery(
     adminCollectionsQuery,
   );
 
-  const reserveCode =
-    useServerFn(
-      reserveProductCode,
-    );
+  const numericPrice = Number(d.price);
 
-  const previewCode =
-    useServerFn(
-      peekProductCode,
-    );
-
-  /*
-   * REQUIRED FIELD VALIDATION
-   */
-
-  const numericPrice =
-    Number(d.price);
-
-  const nameInvalid =
-    !d.name.trim();
-
-  const categoryInvalid =
-    !d.category;
+  const nameInvalid = !d.name.trim();
+  const categoryInvalid = !d.category;
 
   const priceInvalid =
     !d.price.trim() ||
-    !Number.isFinite(
-      numericPrice,
-    ) ||
+    !Number.isFinite(numericPrice) ||
     numericPrice <= 0;
 
   /*
-   * Price stays visibly red
-   * while empty / invalid.
+   * PRICE IS ALWAYS RED WHILE EMPTY/INVALID
    */
-  const priceNeedsAttention =
-    priceInvalid;
+  const priceNeedsAttention = priceInvalid;
 
-  const selectableCategories =
-    useMemo(
-      () =>
-        categories.filter(
-          (category) =>
-            category.active ||
-            category.slug ===
-              product?.category,
-        ),
+  const selectableCategories = useMemo(
+    () =>
+      categories.filter(
+        (category) =>
+          category.active ||
+          category.slug === product?.category,
+      ),
+    [categories, product?.category],
+  );
 
-      [
-        categories,
-        product?.category,
-      ],
-    );
+  const selectedCategory = useMemo(
+    () =>
+      categories.find(
+        (category) => category.slug === d.category,
+      ) ?? null,
+    [categories, d.category],
+  );
 
-  const selectedCategory =
-    useMemo(
-      () =>
-        categories.find(
-          (category) =>
-            category.slug ===
-            d.category,
-        ) ?? null,
-
-      [
-        categories,
-        d.category,
-      ],
-    );
-
+  /*
+   * PRODUCT CODE PREVIEW
+   *
+   * IMPORTANT:
+   * Uses the authenticated browser Supabase client directly.
+   * No TanStack server function is used here.
+   */
   const {
     data: codePreview,
     isFetching: codeLoading,
+    isError: codePreviewFailed,
   } = useQuery({
     queryKey: [
       "product-code-preview",
@@ -404,28 +286,35 @@ export function ProductForm({
     enabled:
       !product &&
       !!d.category &&
-      selectedCategory?.active ===
-        true,
+      selectedCategory?.active === true,
 
-    queryFn: () =>
-      previewCode({
-        data: {
-          category:
-            d.category,
+    retry: false,
+
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        "peek_product_code",
+        {
+          _category: d.category,
         },
-      }),
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        code: data ? String(data) : "",
+      };
+    },
   });
 
   useEffect(() => {
     const onBeforeUnload = (
       event: BeforeUnloadEvent,
     ) => {
-      if (!dirty) {
-        return;
-      }
+      if (!dirty) return;
 
       event.preventDefault();
-
       event.returnValue = "";
     };
 
@@ -434,16 +323,15 @@ export function ProductForm({
       onBeforeUnload,
     );
 
-    return () =>
+    return () => {
       window.removeEventListener(
         "beforeunload",
         onBeforeUnload,
       );
+    };
   }, [dirty]);
 
-  const set = <
-    Key extends keyof Draft,
-  >(
+  const set = <Key extends keyof Draft>(
     key: Key,
     value: Draft[Key],
   ) => {
@@ -455,604 +343,490 @@ export function ProductForm({
     }));
   };
 
-  const selectedCollection =
-    useMemo(
-      () =>
-        collections.find(
-          (collection) =>
-            collection.id ===
-            d.collection_id,
-        ) ?? null,
-
-      [
-        collections,
-        d.collection_id,
-      ],
-    );
-
-  const relatedCandidates =
-    products.filter(
-      (item) =>
-        item.id !== product?.id,
-    );
-
-  const originalImageRefs =
-    useMemo(
-      () =>
-        product
-          ? [
-              product.primary_image,
-
-              ...(
-                product.gallery_images ??
-                []
-              ),
-            ].filter(Boolean)
-          : [],
-
-      [product],
-    );
-
-  const currentImageRefs =
+  const selectedCollection = useMemo(
     () =>
-      [
-        d.primary_image,
+      collections.find(
+        (collection) =>
+          collection.id === d.collection_id,
+      ) ?? null,
+    [collections, d.collection_id],
+  );
 
-        ...d.gallery_images.slice(
-          0,
-          5,
-        ),
-      ].filter(Boolean);
+  const relatedCandidates = products.filter(
+    (item) => item.id !== product?.id,
+  );
 
-  const cleanupUnsavedUploads =
-    async () => {
-      const original =
-        new Set(
-          originalImageRefs,
-        );
+  const originalImageRefs = useMemo(
+    () =>
+      product
+        ? cleanRefs([
+            product.primary_image,
+            ...(product.gallery_images ?? []),
+          ])
+        : [],
+    [product],
+  );
 
-      const candidates =
-        currentImageRefs().filter(
-          (reference) =>
-            !original.has(
-              reference,
-            ),
-        );
+  const currentImageRefs = () =>
+    cleanRefs([
+      d.primary_image,
+      ...d.gallery_images.slice(0, 5),
+    ]);
 
+  const cleanupUnsavedUploads = async () => {
+    const original = new Set(originalImageRefs);
+
+    const candidates = currentImageRefs().filter(
+      (reference) => !original.has(reference),
+    );
+
+    if (candidates.length === 0) return;
+
+    try {
+      await removeUnusedMediaRefs(candidates);
+    } catch (error) {
+      console.warn(
+        "Could not clean unsaved media",
+        error,
+      );
+    }
+  };
+
+  const validateRequiredFields = (
+    action: SaveAction,
+  ) => {
+    setShowValidation(true);
+
+    if (nameInvalid) {
+      toast.error("Product name is required.");
+      return false;
+    }
+
+    if (categoryInvalid) {
+      toast.error("Category is required.");
+      return false;
+    }
+
+    if (priceInvalid) {
+      toast.error(
+        "Price is required and must be greater than 0.",
+      );
+      return false;
+    }
+
+    if (
+      action === "publish" &&
+      !d.primary_image
+    ) {
+      toast.error(
+        "Add a main image before publishing.",
+      );
+      return false;
+    }
+
+    if (
+      action === "publish" &&
+      !selectedCategory?.active
+    ) {
+      toast.error(
+        "Activate this category before publishing the object.",
+      );
+      return false;
+    }
+
+    if (
+      action === "publish" &&
+      d.archived
+    ) {
+      toast.error(
+        "Unarchive this object before publishing it.",
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const save = useMutation({
+    mutationFn: async ({
+      action,
+    }: {
+      action: SaveAction;
+    }) => {
+      /*
+       * UNPUBLISH ONLY
+       *
+       * Do not rebuild/update every other product field just
+       * because the admin wants to unpublish an existing item.
+       */
       if (
-        candidates.length === 0
+        action === "unpublish" &&
+        product
       ) {
-        return;
-      }
-
-      try {
-        await removeUnusedMediaRefs(
-          candidates,
-        );
-      } catch (error) {
-        console.warn(
-          "Could not clean unsaved media",
-          error,
-        );
-      }
-    };
-
-  /*
-   * Front-end validation.
-   * Save Draft + Publish both require:
-   *
-   * - Product Name
-   * - Category
-   * - Price > 0
-   *
-   * Publish additionally requires:
-   * - Main image
-   * - Active category
-   * - Not archived
-   */
-  const validateRequiredFields =
-    (
-      action: SaveAction,
-    ) => {
-      setShowValidation(true);
-
-      if (nameInvalid) {
-        toast.error(
-          "Product name is required.",
-        );
-
-        return false;
-      }
-
-      if (categoryInvalid) {
-        toast.error(
-          "Category is required.",
-        );
-
-        return false;
-      }
-
-      if (priceInvalid) {
-        toast.error(
-          "Price is required and must be greater than 0.",
-        );
-
-        return false;
-      }
-
-      if (
-        action ===
-          "publish" &&
-        !d.primary_image
-      ) {
-        toast.error(
-          "Add a main image before publishing.",
-        );
-
-        return false;
-      }
-
-      if (
-        action ===
-          "publish" &&
-        !selectedCategory?.active
-      ) {
-        toast.error(
-          "Activate this category before publishing the object.",
-        );
-
-        return false;
-      }
-
-      if (
-        action ===
-          "publish" &&
-        d.archived
-      ) {
-        toast.error(
-          "Unpublish this object before archiving it.",
-        );
-
-        return false;
-      }
-
-      return true;
-    };
-
-  const save =
-    useMutation({
-      mutationFn: async ({
-        action,
-      }: {
-        action: SaveAction;
-      }) => {
-        /*
-         * Keep unpublish available
-         * even if an old product has
-         * invalid legacy data.
-         */
-        if (
-          action !==
-          "unpublish"
-        ) {
-          if (
-            !d.name.trim()
-          ) {
-            throw new Error(
-              "Product name is required",
-            );
-          }
-
-          if (!d.category) {
-            throw new Error(
-              "Pick a category",
-            );
-          }
-
-          if (
-            !d.price.trim()
-          ) {
-            throw new Error(
-              "Price is required",
-            );
-          }
-
-          if (
-            !Number.isFinite(
-              numericPrice,
-            ) ||
-            numericPrice <= 0
-          ) {
-            throw new Error(
-              "Price must be greater than 0",
-            );
-          }
-        }
-
-        const nextPublished =
-          action === "publish"
-            ? true
-            : action ===
-                "unpublish"
-              ? false
-              : product
-                  ?.published ??
-                false;
-
-        if (nextPublished) {
-          if (
-            !d.primary_image
-          ) {
-            throw new Error(
-              "Add a main image before publishing",
-            );
-          }
-
-          if (
-            !selectedCategory
-              ?.active
-          ) {
-            throw new Error(
-              "Activate this category before publishing the object",
-            );
-          }
-
-          if (d.archived) {
-            throw new Error(
-              "Unpublish this object before archiving it.",
-            );
-          }
-        }
-
-        const qty =
-          Math.max(
-            0,
-            Number(
-              d.quantity_available ||
-                0,
-            ),
-          );
-
-        const status =
-          qty <= 0
-            ? "SOLD OUT"
-            : d.stock_status;
-
-        const slug =
-          await uniqueSlug(
-            d.slug.trim() ||
-              d.name,
-
-            product?.id,
-          );
-
-        const nextGallery =
-          d.gallery_images.slice(
-            0,
-            5,
-          );
-
-        const nextImageRefs =
-          [
-            d.primary_image,
-            ...nextGallery,
-          ].filter(Boolean);
-
-        const nextImageSet =
-          new Set(
-            nextImageRefs,
-          );
-
-        const removedMediaRefs =
-          originalImageRefs.filter(
-            (reference) =>
-              !nextImageSet.has(
-                reference,
-              ),
-          );
-
-        const payload = {
-          name:
-            d.name.trim(),
-
-          slug,
-
-          category:
-            d.category,
-
-          /*
-           * Do not silently turn
-           * blank price into 0.
-           */
-          price:
-            action ===
-            "unpublish"
-              ? Number(
-                  d.price || 0,
-                )
-              : numericPrice,
-
-          old_price:
-            d.old_price
-              ? Math.max(
-                  0,
-                  Number(
-                    d.old_price,
-                  ),
-                )
-              : null,
-
-          quantity_available:
-            qty,
-
-          stock_status:
-            status,
-
-          short_description:
-            d.short_description,
-
-          full_description:
-            d.full_description,
-
-          material:
-            d.material,
-
-          finish:
-            fromCsv(
-              d.finish,
-            ),
-
-          fit_gender:
-            d.fit_gender,
-
-          tags:
-            fromCsv(
-              d.tags,
-            ),
-
-          size_type:
-            d.size_type,
-
-          sizes:
-            fromCsv(
-              d.sizes,
-            ),
-
-          size_description:
-            d.size_description,
-
-          size_guide:
-            d.size_guide,
-
-          details_content:
-            d.details_content,
-
-          material_content:
-            d.material_content,
-
-          care:
-            d.care,
-
-          delivery:
-            d.delivery,
-
-          collection_id:
-            d.collection_id ||
-            null,
-
-          collection_name:
-            selectedCollection
-              ? `DROP ${String(
-                  selectedCollection.drop_number,
-                ).padStart(
-                  3,
-                  "0",
-                )} — ${selectedCollection.name}`
-              : "",
-
-          related_product_ids:
-            d.related_product_ids.slice(
-              0,
-              2,
-            ),
-
-          featured:
-            d.featured,
-
-          new_collection:
-            d.new_collection,
-
-          archived:
-            d.archived,
-
-          published:
-            nextPublished,
-
-          whatsapp_available:
-            d.whatsapp_available,
-
-          primary_image:
-            d.primary_image,
-
-          gallery_images:
-            nextGallery,
-
-          sort_order:
-            Number(
-              d.sort_order ||
-                0,
-            ),
-        };
-
-        /*
-         * UPDATE EXISTING PRODUCT
-         */
-
-        if (product) {
-          const {
-            error,
-          } = await supabase
-            .from(
-              "products",
-            )
-            .update(payload)
-            .eq(
-              "id",
-              product.id,
-            );
-
-          if (error) {
-            throw error;
-          }
-
-          return {
-            code:
-              product.product_code,
-
-            action,
-
-            published:
-              nextPublished,
-
-            slug,
-
-            removedMediaRefs,
-          };
-        }
-
-        /*
-         * CREATE NEW PRODUCT
-         */
-
-        const {
-          code,
-        } = await reserveCode(
-          {
-            data: {
-              category:
-                d.category,
-            },
-          },
-        );
-
-        const {
-          error,
-        } = await supabase
+        const { error } = await supabase
           .from("products")
-          .insert({
-            ...payload,
-
-            product_code:
-              code,
-          });
+          .update({
+            published: false,
+          })
+          .eq("id", product.id);
 
         if (error) {
-          throw error;
+          throw new Error(error.message);
         }
 
         return {
-          code,
-
+          code: product.product_code,
           action,
+          published: false,
+          slug: product.slug,
+          removedMediaRefs: [] as string[],
+        };
+      }
 
-          published:
-            nextPublished,
+      /*
+       * REQUIRED FIELDS
+       */
+      if (!d.name.trim()) {
+        throw new Error(
+          "Product name is required",
+        );
+      }
 
+      if (!d.category) {
+        throw new Error(
+          "Category is required",
+        );
+      }
+
+      if (!d.price.trim()) {
+        throw new Error(
+          "Price is required",
+        );
+      }
+
+      if (
+        !Number.isFinite(numericPrice) ||
+        numericPrice <= 0
+      ) {
+        throw new Error(
+          "Price must be greater than 0",
+        );
+      }
+
+      const nextPublished =
+        action === "publish"
+          ? true
+          : product?.published ?? false;
+
+      /*
+       * PUBLISH VALIDATION
+       */
+      if (nextPublished) {
+        if (!d.primary_image) {
+          throw new Error(
+            "Add a main image before publishing",
+          );
+        }
+
+        if (!selectedCategory?.active) {
+          throw new Error(
+            "Activate this category before publishing the object",
+          );
+        }
+
+        if (d.archived) {
+          throw new Error(
+            "Unarchive this object before publishing it",
+          );
+        }
+      }
+
+      const qty = Math.max(
+        0,
+        Number(d.quantity_available || 0),
+      );
+
+      const status =
+        qty <= 0
+          ? "SOLD OUT"
+          : d.stock_status === "SOLD OUT"
+            ? "IN STOCK"
+            : d.stock_status;
+
+      const slug = await uniqueSlug(
+        d.slug.trim() || d.name,
+        product?.id,
+      );
+
+      const nextGallery =
+        d.gallery_images.slice(0, 5);
+
+      const nextImageRefs = cleanRefs([
+        d.primary_image,
+        ...nextGallery,
+      ]);
+
+      const nextImageSet =
+        new Set(nextImageRefs);
+
+      const removedMediaRefs =
+        originalImageRefs.filter(
+          (reference) =>
+            !nextImageSet.has(reference),
+        );
+
+      const payload = {
+        name: d.name.trim(),
+
+        slug,
+
+        category: d.category,
+
+        /*
+         * Blank price can no longer become 0.
+         */
+        price: numericPrice,
+
+        old_price: d.old_price.trim()
+          ? Math.max(
+              0,
+              Number(d.old_price),
+            )
+          : null,
+
+        quantity_available: qty,
+
+        stock_status: status,
+
+        short_description:
+          d.short_description,
+
+        full_description:
+          d.full_description,
+
+        material: d.material,
+
+        finish: fromCsv(d.finish),
+
+        fit_gender: d.fit_gender,
+
+        tags: fromCsv(d.tags),
+
+        size_type: d.size_type,
+
+        sizes: fromCsv(d.sizes),
+
+        size_description:
+          d.size_description,
+
+        size_guide: d.size_guide,
+
+        details_content:
+          d.details_content,
+
+        material_content:
+          d.material_content,
+
+        care: d.care,
+
+        delivery: d.delivery,
+
+        collection_id:
+          d.collection_id || null,
+
+        collection_name:
+          selectedCollection
+            ? `DROP ${String(
+                selectedCollection.drop_number,
+              ).padStart(3, "0")} — ${
+                selectedCollection.name
+              }`
+            : "",
+
+        related_product_ids:
+          d.related_product_ids.slice(0, 2),
+
+        featured: d.featured,
+
+        new_collection:
+          d.new_collection,
+
+        archived: d.archived,
+
+        published: nextPublished,
+
+        whatsapp_available:
+          d.whatsapp_available,
+
+        primary_image:
+          d.primary_image,
+
+        gallery_images:
+          nextGallery,
+
+        sort_order: Number(
+          d.sort_order || 0,
+        ),
+      };
+
+      /*
+       * UPDATE EXISTING PRODUCT
+       */
+      if (product) {
+        const { error } = await supabase
+          .from("products")
+          .update(payload)
+          .eq("id", product.id);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return {
+          code: product.product_code,
+          action,
+          published: nextPublished,
           slug,
-
           removedMediaRefs,
         };
-      },
+      }
 
-      onSuccess: ({
+      /*
+       * CREATE NEW PRODUCT CODE
+       *
+       * Direct Supabase RPC:
+       * authenticated admin session is preserved.
+       */
+      const {
+        data: generatedCode,
+        error: codeError,
+      } = await supabase.rpc(
+        "next_product_code",
+        {
+          _category: d.category,
+        },
+      );
+
+      if (codeError) {
+        throw new Error(
+          `Product code error: ${codeError.message}`,
+        );
+      }
+
+      const code = generatedCode
+        ? String(generatedCode)
+        : "";
+
+      if (!code) {
+        throw new Error(
+          "Could not generate product code",
+        );
+      }
+
+      /*
+       * INSERT NEW PRODUCT
+       */
+      const { error } = await supabase
+        .from("products")
+        .insert({
+          ...payload,
+          product_code: code,
+        });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
         code,
         action,
-        published,
+        published: nextPublished,
+        slug,
         removedMediaRefs,
-      }) => {
-        setDirty(false);
+      };
+    },
 
-        setShowValidation(
-          false,
-        );
+    onSuccess: ({
+      code,
+      action,
+      published,
+      removedMediaRefs,
+    }) => {
+      setDirty(false);
+      setShowValidation(false);
 
-        queryClient.invalidateQueries(
-          {
-            queryKey: [
-              "products",
-            ],
-          },
-        );
+      queryClient.invalidateQueries({
+        queryKey: ["products"],
+      });
 
-        if (
-          removedMediaRefs.length >
-          0
-        ) {
-          void removeUnusedMediaRefs(
-            removedMediaRefs,
-          ).catch(
-            (error) => {
-              console.warn(
-                "Could not clean removed media",
-                error,
-              );
-            },
-          );
-        }
+      queryClient.invalidateQueries({
+        queryKey: [
+          "product-code-preview",
+        ],
+      });
 
-        if (
-          action ===
-          "unpublish"
-        ) {
-          toast.success(
-            `Object unpublished — ${code}`,
+      if (removedMediaRefs.length > 0) {
+        void removeUnusedMediaRefs(
+          removedMediaRefs,
+        ).catch((error) => {
+          console.warn(
+            "Could not clean removed media",
+            error,
           );
-        } else if (
-          product &&
-          action === "save"
-        ) {
-          toast.success(
-            `Changes saved — ${code}`,
-          );
-        } else if (
-          published
-        ) {
-          toast.success(
-            `Object Published Successfully — ${code}`,
-          );
-        } else {
-          toast.success(
-            `Draft saved — ${code}`,
-          );
-        }
-
-        navigate({
-          to: "/admin/products",
         });
-      },
+      }
 
-      onError: (
+      if (action === "unpublish") {
+        toast.success(
+          `Object unpublished — ${code}`,
+        );
+      } else if (
+        product &&
+        action === "save"
+      ) {
+        toast.success(
+          `Changes saved — ${code}`,
+        );
+      } else if (published) {
+        toast.success(
+          `Object Published Successfully — ${code}`,
+        );
+      } else {
+        toast.success(
+          `Draft saved — ${code}`,
+        );
+      }
+
+      navigate({
+        to: "/admin/products",
+      });
+    },
+
+    /*
+     * SHOW THE REAL ERROR.
+     *
+     * No more generic "Could not save object"
+     * if Supabase provides a useful message.
+     */
+    onError: (error) => {
+      setShowValidation(true);
+
+      console.error(
+        "Product save failed:",
         error,
-      ) => {
-        setShowValidation(
-          true,
-        );
+      );
 
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Could not save object",
-        );
-      },
-    });
+      toast.error(
+        getErrorMessage(error),
+      );
+    },
+  });
 
   const submitProduct = (
     action: SaveAction,
   ) => {
     if (
-      !validateRequiredFields(
-        action,
-      )
+      !validateRequiredFields(action)
     ) {
       return;
     }
@@ -1066,16 +840,12 @@ export function ProductForm({
     id: string,
   ) => {
     if (
-      d.related_product_ids.includes(
-        id,
-      )
+      d.related_product_ids.includes(id)
     ) {
       set(
         "related_product_ids",
-
         d.related_product_ids.filter(
-          (value) =>
-            value !== id,
+          (value) => value !== id,
         ),
       );
 
@@ -1083,8 +853,7 @@ export function ProductForm({
     }
 
     if (
-      d.related_product_ids
-        .length >= 2
+      d.related_product_ids.length >= 2
     ) {
       toast.error(
         "Select up to 2 related objects",
@@ -1093,14 +862,10 @@ export function ProductForm({
       return;
     }
 
-    set(
-      "related_product_ids",
-
-      [
-        ...d.related_product_ids,
-        id,
-      ],
-    );
+    set("related_product_ids", [
+      ...d.related_product_ids,
+      id,
+    ]);
   };
 
   return (
@@ -1119,21 +884,35 @@ export function ProductForm({
               PRODUCT CODE
             </span>
 
-            <p className="mt-2 font-display text-lg tracking-[0.18em] text-foreground">
-              {product
-                ?.product_code ||
+            <p
+              className={`mt-2 font-display text-lg tracking-[0.18em] ${
+                codePreviewFailed
+                  ? "text-red-400"
+                  : "text-foreground"
+              }`}
+            >
+              {product?.product_code ||
                 (d.category
-                  ? selectedCategory
-                      ?.active ===
+                  ? selectedCategory?.active ===
                     false
                     ? "Category hidden"
                     : codeLoading
                       ? "Checking…"
-                      : codePreview
-                            ?.code ??
-                        "Generated automatically"
+                      : codePreviewFailed
+                        ? "Could not preview code"
+                        : codePreview?.code ||
+                          "Generated automatically"
                   : "Select a category")}
             </p>
+
+            {codePreviewFailed && (
+              <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-red-400">
+                Product code preview failed.
+                Saving will show the exact
+                database error if the problem
+                remains.
+              </p>
+            )}
           </div>
 
           <div className="sm:text-right">
@@ -1192,37 +971,27 @@ export function ProductForm({
                   : ""
               }`}
               value={d.name}
-              onChange={(
-                event,
-              ) => {
+              placeholder="PRODUCT NAME"
+              onChange={(event) => {
                 const name =
-                  event.target
-                    .value;
+                  event.target.value;
 
                 setDirty(true);
 
-                setD(
-                  (current) => ({
-                    ...current,
-
-                    name,
-
-                    slug: product
-                      ? current.slug
-                      : slugify(
-                          name,
-                        ),
-                  }),
-                );
+                setD((current) => ({
+                  ...current,
+                  name,
+                  slug: product
+                    ? current.slug
+                    : slugify(name),
+                }));
               }}
-              placeholder="PRODUCT NAME"
             />
 
             {showValidation &&
               nameInvalid && (
                 <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-red-400">
-                  Product name is
-                  required.
+                  Product name is required.
                 </p>
               )}
           </div>
@@ -1231,19 +1000,13 @@ export function ProductForm({
 
           <Field label="Slug / URL">
             <input
-              className={
-                adminField
-              }
+              className={adminField}
               value={d.slug}
-              onChange={(
-                event,
-              ) =>
+              onChange={(event) =>
                 set(
                   "slug",
-
                   slugify(
-                    event.target
-                      .value,
+                    event.target.value,
                   ),
                 )
               }
@@ -1274,16 +1037,11 @@ export function ProductForm({
                   ? "border-red-500/80 bg-red-500/[0.05] focus:border-red-400"
                   : ""
               }`}
-              value={
-                d.category
-              }
-              onChange={(
-                event,
-              ) =>
+              value={d.category}
+              onChange={(event) =>
                 set(
                   "category",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             >
@@ -1292,25 +1050,13 @@ export function ProductForm({
               </option>
 
               {selectableCategories.map(
-                (
-                  category,
-                ) => (
+                (category) => (
                   <option
-                    key={
-                      category.slug
-                    }
-                    value={
-                      category.slug
-                    }
+                    key={category.slug}
+                    value={category.slug}
                   >
-                    {
-                      category.name
-                    }{" "}
-                    (
-                    {
-                      category.code_prefix
-                    }
-                    )
+                    {category.name} (
+                    {category.code_prefix})
                     {!category.active
                       ? " — HIDDEN"
                       : ""}
@@ -1322,8 +1068,7 @@ export function ProductForm({
             {showValidation &&
               categoryInvalid && (
                 <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-red-400">
-                  Category is
-                  required.
+                  Category is required.
                 </p>
               )}
           </div>
@@ -1332,19 +1077,12 @@ export function ProductForm({
 
           <Field label="Collection">
             <select
-              className={
-                adminField
-              }
-              value={
-                d.collection_id
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.collection_id}
+              onChange={(event) =>
                 set(
                   "collection_id",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             >
@@ -1353,28 +1091,16 @@ export function ProductForm({
               </option>
 
               {collections.map(
-                (
-                  collection,
-                ) => (
+                (collection) => (
                   <option
-                    key={
-                      collection.id
-                    }
-                    value={
-                      collection.id
-                    }
+                    key={collection.id}
+                    value={collection.id}
                   >
                     DROP{" "}
                     {String(
                       collection.drop_number,
-                    ).padStart(
-                      3,
-                      "0",
-                    )}{" "}
-                    —{" "}
-                    {
-                      collection.name
-                    }
+                    ).padStart(3, "0")}{" "}
+                    — {collection.name}
                   </option>
                 ),
               )}
@@ -1406,26 +1132,20 @@ export function ProductForm({
               type="number"
               min={0.01}
               step="0.01"
-              value={
-                d.price
-              }
-              onChange={(
-                event,
-              ) =>
+              value={d.price}
+              placeholder="ENTER PRICE"
+              onChange={(event) =>
                 set(
                   "price",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
-              placeholder="ENTER PRICE"
             />
 
             {priceNeedsAttention && (
               <p className="mt-2 text-[9px] uppercase tracking-[0.25em] text-red-400">
-                Price is required
-                and must be greater
-                than 0.
+                Price is required and must
+                be greater than 0.
               </p>
             )}
           </div>
@@ -1434,22 +1154,15 @@ export function ProductForm({
 
           <Field label="Old price (optional)">
             <input
-              className={
-                adminField
-              }
+              className={adminField}
               type="number"
               min={0}
               step="0.01"
-              value={
-                d.old_price
-              }
-              onChange={(
-                event,
-              ) =>
+              value={d.old_price}
+              onChange={(event) =>
                 set(
                   "old_price",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             />
@@ -1458,20 +1171,13 @@ export function ProductForm({
 
         <Field label="Short description">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={2}
-            value={
-              d.short_description
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.short_description}
+            onChange={(event) =>
               set(
                 "short_description",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1479,20 +1185,13 @@ export function ProductForm({
 
         <Field label="Full description">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={5}
-            value={
-              d.full_description
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.full_description}
+            onChange={(event) =>
               set(
                 "full_description",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1509,19 +1208,12 @@ export function ProductForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Material">
             <input
-              className={
-                adminField
-              }
-              value={
-                d.material
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.material}
+              onChange={(event) =>
                 set(
                   "material",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             />
@@ -1529,62 +1221,43 @@ export function ProductForm({
 
           <Field label="Finish / color (comma separated)">
             <input
-              className={
-                adminField
-              }
-              value={
-                d.finish
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.finish}
+              placeholder="CHROME, GUNMETAL"
+              onChange={(event) =>
                 set(
                   "finish",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
-              placeholder="CHROME, GUNMETAL"
             />
           </Field>
 
           <Field label="Fit / gender">
             <input
-              className={
-                adminField
-              }
-              value={
-                d.fit_gender
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.fit_gender}
+              placeholder="UNISEX"
+              onChange={(event) =>
                 set(
                   "fit_gender",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
-              placeholder="UNISEX"
             />
           </Field>
 
           <Field label="Tags (comma separated)">
             <input
-              className={
-                adminField
-              }
+              className={adminField}
               value={d.tags}
-              onChange={(
-                event,
-              ) =>
+              placeholder="gothic, chrome, y2k"
+              onChange={(event) =>
                 set(
                   "tags",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
-              placeholder="gothic, chrome, y2k"
             />
           </Field>
         </div>
@@ -1600,19 +1273,12 @@ export function ProductForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Size type">
             <select
-              className={
-                adminField
-              }
-              value={
-                d.size_type
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.size_type}
+              onChange={(event) =>
                 set(
                   "size_type",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             >
@@ -1622,59 +1288,41 @@ export function ProductForm({
                 "ONE SIZE",
                 "MULTIPLE SIZES",
                 "CUSTOM",
-              ].map(
-                (value) => (
-                  <option
-                    key={
-                      value
-                    }
-                    value={
-                      value
-                    }
-                  >
-                    {value}
-                  </option>
-                ),
-              )}
+              ].map((value) => (
+                <option
+                  key={value}
+                  value={value}
+                >
+                  {value}
+                </option>
+              ))}
             </select>
           </Field>
 
           <Field label="Available sizes (comma separated)">
             <input
-              className={
-                adminField
-              }
+              className={adminField}
               value={d.sizes}
-              onChange={(
-                event,
-              ) =>
+              placeholder="6, 7, 8, 9 or S, M, L"
+              onChange={(event) =>
                 set(
                   "sizes",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
-              placeholder="6, 7, 8, 9 or S, M, L"
             />
           </Field>
         </div>
 
         <Field label="Size description">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={2}
-            value={
-              d.size_description
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.size_description}
+            onChange={(event) =>
               set(
                 "size_description",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1682,20 +1330,13 @@ export function ProductForm({
 
         <Field label="Size guide">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={4}
-            value={
-              d.size_guide
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.size_guide}
+            onChange={(event) =>
               set(
                 "size_guide",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1712,72 +1353,51 @@ export function ProductForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Quantity available">
             <input
-              className={
-                adminField
-              }
+              className={adminField}
               type="number"
               min={0}
-              value={
-                d.quantity_available
-              }
-              onChange={(
-                event,
-              ) => {
+              value={d.quantity_available}
+              onChange={(event) => {
                 const value =
-                  event.target
-                    .value;
+                  event.target.value;
 
                 setDirty(true);
 
-                setD(
-                  (current) => ({
-                    ...current,
+                setD((current) => ({
+                  ...current,
 
-                    quantity_available:
-                      value,
+                  quantity_available:
+                    value,
 
-                    stock_status:
-                      Number(
-                        value ||
-                          0,
-                      ) <= 0
-                        ? "SOLD OUT"
+                  stock_status:
+                    Number(value || 0) <=
+                    0
+                      ? "SOLD OUT"
+                      : current.stock_status ===
+                          "SOLD OUT"
+                        ? "IN STOCK"
                         : current.stock_status,
-                  }),
-                );
+                }));
               }}
             />
           </Field>
 
           <Field label="Stock status">
             <select
-              className={
-                adminField
-              }
-              value={
-                d.stock_status
-              }
-              onChange={(
-                event,
-              ) =>
+              className={adminField}
+              value={d.stock_status}
+              onChange={(event) =>
                 set(
                   "stock_status",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             >
               {STOCK_OPTIONS.map(
-                (
-                  status,
-                ) => (
+                (status) => (
                   <option
-                    key={
-                      status
-                    }
-                    value={
-                      status
-                    }
+                    key={status}
+                    value={status}
                   >
                     {status}
                   </option>
@@ -1797,20 +1417,13 @@ export function ProductForm({
 
         <Field label="Details content">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={4}
-            value={
-              d.details_content
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.details_content}
+            onChange={(event) =>
               set(
                 "details_content",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1818,20 +1431,13 @@ export function ProductForm({
 
         <Field label="Material content">
           <textarea
-            className={
-              adminField
-            }
+            className={adminField}
             rows={4}
-            value={
-              d.material_content
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.material_content}
+            onChange={(event) =>
               set(
                 "material_content",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -1840,20 +1446,13 @@ export function ProductForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Care content">
             <textarea
-              className={
-                adminField
-              }
+              className={adminField}
               rows={4}
-              value={
-                d.care
-              }
-              onChange={(
-                event,
-              ) =>
+              value={d.care}
+              onChange={(event) =>
                 set(
                   "care",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             />
@@ -1861,20 +1460,13 @@ export function ProductForm({
 
           <Field label="Delivery content">
             <textarea
-              className={
-                adminField
-              }
+              className={adminField}
               rows={4}
-              value={
-                d.delivery
-              }
-              onChange={(
-                event,
-              ) =>
+              value={d.delivery}
+              onChange={(event) =>
                 set(
                   "delivery",
-                  event.target
-                    .value,
+                  event.target.value,
                 )
               }
             />
@@ -1890,8 +1482,9 @@ export function ProductForm({
         </h2>
 
         <p className="text-[9px] uppercase tracking-[0.28em] text-muted-foreground">
-          Main image is required
-          before publishing.
+          Main image is required only
+          when publishing. A draft can
+          be saved without an image.
         </p>
 
         <ImageUploader
@@ -1899,14 +1492,10 @@ export function ProductForm({
           max={1}
           value={
             d.primary_image
-              ? [
-                  d.primary_image,
-                ]
+              ? [d.primary_image]
               : []
           }
-          onChange={(
-            next,
-          ) =>
+          onChange={(next) =>
             set(
               "primary_image",
               next[0] ?? "",
@@ -1917,12 +1506,8 @@ export function ProductForm({
         <ImageUploader
           label="Gallery"
           max={5}
-          value={
-            d.gallery_images
-          }
-          onChange={(
-            next,
-          ) =>
+          value={d.gallery_images}
+          onChange={(next) =>
             set(
               "gallery_images",
               next,
@@ -1940,17 +1525,15 @@ export function ProductForm({
 
         <p className="text-[10px] leading-relaxed text-muted-foreground">
           Select up to 2 manual
-          recommendations. Leave
-          empty to allow the public
-          product page to use
-          automatic recommendations.
+          recommendations. Leave empty
+          to allow the public product
+          page to use automatic
+          recommendations.
         </p>
 
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {relatedCandidates.map(
-            (
-              candidate,
-            ) => {
+            (candidate) => {
               const active =
                 d.related_product_ids.includes(
                   candidate.id,
@@ -1958,9 +1541,7 @@ export function ProductForm({
 
               return (
                 <button
-                  key={
-                    candidate.id
-                  }
+                  key={candidate.id}
                   type="button"
                   onClick={() =>
                     toggleRelated(
@@ -1980,9 +1561,7 @@ export function ProductForm({
                   </span>
 
                   <span className="mt-1 block text-[9px] uppercase tracking-[0.2em] text-foreground">
-                    {
-                      candidate.name
-                    }
+                    {candidate.name}
                   </span>
                 </button>
               );
@@ -2001,12 +1580,8 @@ export function ProductForm({
         <div className="flex flex-wrap gap-3">
           <Toggle
             label="Featured"
-            checked={
-              d.featured
-            }
-            onChange={(
-              value,
-            ) =>
+            checked={d.featured}
+            onChange={(value) =>
               set(
                 "featured",
                 value,
@@ -2019,9 +1594,7 @@ export function ProductForm({
             checked={
               d.new_collection
             }
-            onChange={(
-              value,
-            ) =>
+            onChange={(value) =>
               set(
                 "new_collection",
                 value,
@@ -2031,12 +1604,8 @@ export function ProductForm({
 
           <Toggle
             label="Archived"
-            checked={
-              d.archived
-            }
-            onChange={(
-              value,
-            ) =>
+            checked={d.archived}
+            onChange={(value) =>
               set(
                 "archived",
                 value,
@@ -2049,9 +1618,7 @@ export function ProductForm({
             checked={
               d.whatsapp_available
             }
-            onChange={(
-              value,
-            ) =>
+            onChange={(value) =>
               set(
                 "whatsapp_available",
                 value,
@@ -2062,20 +1629,13 @@ export function ProductForm({
 
         <Field label="Sort order">
           <input
-            className={
-              adminField
-            }
+            className={adminField}
             type="number"
-            value={
-              d.sort_order
-            }
-            onChange={(
-              event,
-            ) =>
+            value={d.sort_order}
+            onChange={(event) =>
               set(
                 "sort_order",
-                event.target
-                  .value,
+                event.target.value,
               )
             }
           />
@@ -2087,13 +1647,9 @@ export function ProductForm({
       <div className="sticky bottom-3 z-20 flex flex-wrap gap-3 rounded-2xl border border-border/60 bg-black/80 p-3 backdrop-blur-xl">
         <AdminButton
           tone="primary"
-          disabled={
-            save.isPending
-          }
+          disabled={save.isPending}
           onClick={() =>
-            submitProduct(
-              "save",
-            )
+            submitProduct("save")
           }
         >
           {save.isPending
@@ -2106,9 +1662,7 @@ export function ProductForm({
         {product?.published ? (
           <AdminButton
             tone="danger"
-            disabled={
-              save.isPending
-            }
+            disabled={save.isPending}
             onClick={() => {
               if (
                 confirm(
@@ -2129,9 +1683,7 @@ export function ProductForm({
         ) : (
           <AdminButton
             tone="primary"
-            disabled={
-              save.isPending
-            }
+            disabled={save.isPending}
             onClick={() =>
               submitProduct(
                 "publish",
@@ -2145,9 +1697,7 @@ export function ProductForm({
         )}
 
         <AdminButton
-          disabled={
-            save.isPending
-          }
+          disabled={save.isPending}
           onClick={async () => {
             if (
               !dirty ||
