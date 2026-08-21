@@ -3,28 +3,74 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const PREFIX = "storage:";
-export const toStorageRef = (path: string) => `${PREFIX}${path}`;
 
-export function resolveSmartImageUrl(src: string | null | undefined) {
+export const toStorageRef = (
+  path: string,
+) => `${PREFIX}${path}`;
+
+
+export function resolveSmartImageUrl(
+  src: string | null | undefined,
+) {
   if (!src) return "";
-  if (!src.startsWith(PREFIX)) return src;
 
-  const path = src.slice(PREFIX.length);
-  if (!path) return "";
+  if (!src.startsWith(PREFIX)) {
+    return src;
+  }
 
-  const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-  return data.publicUrl ?? "";
+  const path =
+    src.slice(
+      PREFIX.length,
+    );
+
+  if (!path) {
+    return "";
+  }
+
+  const { data } =
+    supabase.storage
+      .from(
+        "product-images",
+      )
+      .getPublicUrl(
+        path,
+      );
+
+  return (
+    data.publicUrl ?? ""
+  );
 }
+
 
 export function absoluteSmartImageUrl(
   src: string | null | undefined,
-  origin = "https://zzerkoff.vercel.app",
+  origin =
+    "https://zzerkoff.vercel.app",
 ) {
-  const resolved = resolveSmartImageUrl(src);
-  if (!resolved) return `${origin}/images/zzerkoff-logo.png`;
-  if (/^https?:\/\//i.test(resolved)) return resolved;
-  return `${origin}${resolved.startsWith("/") ? "" : "/"}${resolved}`;
+  const resolved =
+    resolveSmartImageUrl(
+      src,
+    );
+
+  if (!resolved) {
+    return `${origin}/images/zzerkoff-logo.png`;
+  }
+
+  if (
+    /^https?:\/\//i.test(
+      resolved,
+    )
+  ) {
+    return resolved;
+  }
+
+  return `${origin}${
+    resolved.startsWith("/")
+      ? ""
+      : "/"
+  }${resolved}`;
 }
+
 
 export function SmartImage({
   src,
@@ -32,23 +78,49 @@ export function SmartImage({
   className,
   width,
   height,
-  eager,
+  eager = false,
 }: {
-  src: string | null | undefined;
+  src:
+    | string
+    | null
+    | undefined;
+
   alt: string;
+
   className?: string;
+
   width?: number;
+
   height?: number;
+
   eager?: boolean;
 }) {
-  const resolved = useMemo(() => resolveSmartImageUrl(src), [src]);
-  const [failed, setFailed] = useState(false);
+  const resolved =
+    useMemo(
+      () =>
+        resolveSmartImageUrl(
+          src,
+        ),
+      [src],
+    );
+
+
+  const [
+    failed,
+    setFailed,
+  ] =
+    useState(false);
+
 
   useEffect(() => {
     setFailed(false);
   }, [resolved]);
 
-  if (!resolved || failed) {
+
+  if (
+    !resolved ||
+    failed
+  ) {
     return (
       <div
         className={cn(
@@ -65,17 +137,41 @@ export function SmartImage({
     );
   }
 
+
   return (
     <img
       src={resolved}
       alt={alt}
+
       width={width}
       height={height}
-      loading={eager ? "eager" : "lazy"}
-      fetchPriority={eager ? "high" : "auto"}
+
+      loading={
+        eager
+          ? "eager"
+          : "lazy"
+      }
+
+      fetchPriority={
+        eager
+          ? "high"
+          : "low"
+      }
+
       decoding="async"
-      onError={() => setFailed(true)}
+
+      onError={() =>
+        setFailed(true)
+      }
+
       className={className}
+
+      style={{
+        contentVisibility:
+          eager
+            ? "visible"
+            : "auto",
+      }}
     />
   );
 }
