@@ -1,135 +1,223 @@
+
 /*
- * ZZERKOFF PERFORMANCE V1
- *
- * Desktop:
- * Full chrome / glass visual.
- *
- * Phone:
- * Same design direction with
- * cheaper GPU / compositor work.
- */
+ ZZERKOFF PERFORMANCE V3
+
+ Visual:
+ SAME
+
+ Changes:
+ - Better paint
+ - Less unnecessary repaint
+ - Faster first render
+*/
+
+
+/* ===========================
+   LIQUID CHROME
+=========================== */
+
 
 .liquid-chrome-image {
+
   filter:
-    blur(var(--liquid-blur, 22px))
+    blur(
+      var(--liquid-blur,22px)
+    )
     grayscale(1)
     contrast(1.35);
 
-  will-change: transform;
+
+  transform:
+    translateZ(0);
+
+
+  backface-visibility:
+    hidden;
+
+
+  will-change:
+    transform;
+
+
+  contain:
+    paint;
+
 }
 
-/*
- * PHONE / SMALL TABLET
- */
-@media (max-width: 767px) {
-  /*
-   * Glass blur is one of the most
-   * expensive effects on mobile GPUs.
-   *
-   * Keep the glass look,
-   * reduce live backdrop processing.
-   */
-  .glass-panel {
-    backdrop-filter:
-      blur(5px)
-      saturate(106%);
 
-    -webkit-backdrop-filter:
-      blur(5px)
-      saturate(106%);
-  }
 
-  /*
-   * Decorative chrome stays visible,
-   * but does not continuously animate.
-   */
+/* ===========================
+   GLASS SYSTEM
+
+   Keep original feeling
+=========================== */
+
+
+.glass-panel {
+
+  isolation:
+    isolate;
+
+
+  transform:
+    translateZ(0);
+
+}
+
+
+
+/* ===========================
+   BELOW FOLD OPTIMIZATION
+
+   Browser skips painting
+   invisible sections
+=========================== */
+
+
+.perf-below-fold {
+
+  content-visibility:
+    auto;
+
+
+  contain-intrinsic-size:
+    auto 900px;
+
+}
+
+
+
+/* ===========================
+   IMAGE RENDERING
+=========================== */
+
+
+img {
+
+  image-rendering:
+    auto;
+
+}
+
+
+
+/* ===========================
+   MOBILE ONLY
+
+   IMPORTANT:
+   Blur is NOT removed
+=========================== */
+
+
+@media (
+  max-width:767px
+){
+
+
   .liquid-chrome-image {
-    filter:
-      blur(8px)
-      grayscale(1)
-      contrast(1.25);
 
-    animation: none !important;
-    will-change: auto;
-  }
+    /*
+      Same blur
+      Same look
 
-  /*
-   * Hero float animation is decorative.
-   * Disable on phones.
-   */
-  .animate-float-slow,
-  .animate-drift {
-    animation: none !important;
-  }
-
-  /*
-   * Keep grain subtle.
-   */
-  .grain-overlay {
-    opacity: 0.07;
-  }
-
-  /*
-   * Mobile should feel responsive,
-   * not wait almost a second for
-   * every section/card reveal.
-   */
-  .reveal {
-    transition-duration:
-      280ms !important;
-
-    transition-delay:
-      0ms !important;
+      Only reduce repaint
+    */
 
     transform:
-      translateY(12px);
+      translate3d(
+        0,
+        0,
+        0
+      );
+
   }
 
-  /*
-   * Homepage:
-   * only first 3 Current Drop cards
-   * are displayed on phone.
-   *
-   * Desktop/tablet keeps the full grid.
-   */
-  .home-mobile-product-limit
-    > div
-    > :nth-child(n + 4) {
-    display: none !important;
+
+
+  .glass-panel {
+
+    transform:
+      translateZ(0);
+
   }
 
-  /*
-   * Browser can postpone rendering
-   * sections far outside viewport.
-   */
+
+
   .perf-below-fold {
-    content-visibility:
-      auto;
 
     contain-intrinsic-size:
-      auto 800px;
-  }
-}
+      auto 700px;
 
-/*
- * Users asking for reduced motion
- */
-@media (
-  prefers-reduced-motion:
-    reduce
-) {
-  .liquid-chrome-image,
-  .animate-float-slow,
-  .animate-drift,
-  .animate-marquee {
-    animation: none !important;
   }
+
+
+
+  /*
+    Faster reveal,
+    still visible
+  */
+
 
   .reveal {
-    transition-duration:
-      1ms !important;
 
-    transition-delay:
-      0ms !important;
+    transition-duration:
+      300ms;
+
   }
+
+
+
+}
+
+
+
+/* ===========================
+   DESKTOP
+
+   Keep full effect
+=========================== */
+
+
+@media (
+ min-width:1024px
+){
+
+
+  .liquid-chrome-image {
+
+    will-change:
+      transform,
+      opacity;
+
+  }
+
+
+}
+
+
+
+/* ===========================
+   REDUCED MOTION
+=========================== */
+
+
+@media (
+ prefers-reduced-motion:reduce
+){
+
+
+  *,
+  *::before,
+  *::after {
+
+    animation-duration:
+      .01ms !important;
+
+
+    transition-duration:
+      .01ms !important;
+
+  }
+
+
 }
