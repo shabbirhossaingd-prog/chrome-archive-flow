@@ -1,32 +1,48 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import {
+  createFileRoute,
+  Link,
+} from "@tanstack/react-router";
+
+import { useMemo } from "react";
 import { ArrowUpRight } from "lucide-react";
+
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Marquee } from "@/components/site/Marquee";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
 import { Reveal } from "@/components/site/Reveal";
 import { Toaster } from "@/components/ui/sonner";
+
 import {
   useCategories,
   useProducts,
   formatPrice,
 } from "@/lib/products";
+
 import { ProductGrid } from "@/components/site/ProductGrid";
 import { CategoryCard } from "@/components/site/CategoryCard";
 import { SmartImage } from "@/components/site/SmartImage";
+
 import {
   pageJson,
   useCurrentCollection,
   usePage,
 } from "@/lib/cms";
+
 import campaign1 from "@/assets/campaign-1.webp";
 import campaign2 from "@/assets/campaign-2.webp";
 
-const SITE_URL = "https://zzerkoff.vercel.app";
-const HOME_URL = `${SITE_URL}/`;
-const BRAND_NAME = "ZZERKOFF";
-const OG_IMAGE = `${SITE_URL}/images/zzerkoff-logo.png`;
+const SITE_URL =
+  "https://zzerkoff.vercel.app";
+
+const HOME_URL =
+  `${SITE_URL}/`;
+
+const BRAND_NAME =
+  "ZZERKOFF";
+
+const OG_IMAGE =
+  `${SITE_URL}/images/zzerkoff-logo.png`;
 
 const HOME_DESCRIPTION =
   "Shop ZZERKOFF unisex chrome rings, chains and bracelets inspired by Y2K, gothic, vintage metal and underground fashion. Objects for the afterdark.";
@@ -35,199 +51,320 @@ const HOME_SOCIAL_DESCRIPTION =
   "Unisex chrome rings, chains and bracelets inspired by Y2K, gothic, vintage metal and underground culture.";
 
 const homepageSchema = {
-  "@context": "https://schema.org",
+  "@context":
+    "https://schema.org",
+
   "@graph": [
     {
-      "@type": "Organization",
-      "@id": `${HOME_URL}#organization`,
-      name: BRAND_NAME,
-      url: HOME_URL,
+      "@type":
+        "Organization",
+
+      "@id":
+        `${HOME_URL}#organization`,
+
+      name:
+        BRAND_NAME,
+
+      url:
+        HOME_URL,
+
       logo: {
-        "@type": "ImageObject",
-        url: OG_IMAGE,
+        "@type":
+          "ImageObject",
+
+        url:
+          OG_IMAGE,
       },
+
       description:
         "ZZERKOFF is a unisex alternative accessories label inspired by chrome, vintage metal, Y2K, gothic fashion and underground culture.",
     },
+
     {
-      "@type": "WebSite",
-      "@id": `${HOME_URL}#website`,
-      url: HOME_URL,
-      name: BRAND_NAME,
+      "@type":
+        "WebSite",
+
+      "@id":
+        `${HOME_URL}#website`,
+
+      url:
+        HOME_URL,
+
+      name:
+        BRAND_NAME,
+
       description:
         "Unisex chrome rings, chains, bracelets and alternative accessories for the afterdark.",
+
       publisher: {
-        "@id": `${HOME_URL}#organization`,
+        "@id":
+          `${HOME_URL}#organization`,
       },
-      inLanguage: "en",
+
+      inLanguage:
+        "en",
     },
+
     {
-      "@type": "WebPage",
-      "@id": `${HOME_URL}#webpage`,
-      url: HOME_URL,
-      name: BRAND_NAME,
-      description: HOME_DESCRIPTION,
+      "@type":
+        "WebPage",
+
+      "@id":
+        `${HOME_URL}#webpage`,
+
+      url:
+        HOME_URL,
+
+      name:
+        BRAND_NAME,
+
+      description:
+        HOME_DESCRIPTION,
+
       isPartOf: {
-        "@id": `${HOME_URL}#website`,
+        "@id":
+          `${HOME_URL}#website`,
       },
+
       about: {
-        "@id": `${HOME_URL}#organization`,
+        "@id":
+          `${HOME_URL}#organization`,
       },
-      primaryImageOfPage: {
-        "@type": "ImageObject",
-        url: OG_IMAGE,
-      },
-      inLanguage: "en",
+
+      primaryImageOfPage:
+        {
+          "@type":
+            "ImageObject",
+
+          url:
+            OG_IMAGE,
+        },
+
+      inLanguage:
+        "en",
     },
   ],
 };
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      /*
-       * IMPORTANT:
-       * Browser tab stays ONLY "ZZERKOFF".
-       */
-      {
-        title: BRAND_NAME,
-      },
+export const Route =
+  createFileRoute(
+    "/",
+  )({
+    head: () => ({
+      meta: [
+        /*
+         * Browser title:
+         * ONLY ZZERKOFF
+         */
+        {
+          title:
+            BRAND_NAME,
+        },
 
-      /*
-       * Primary SEO
-       */
-      {
-        name: "description",
-        content: HOME_DESCRIPTION,
-      },
-      {
-        name: "author",
-        content: BRAND_NAME,
-      },
-      {
-        name: "application-name",
-        content: BRAND_NAME,
-      },
-      {
-        name: "apple-mobile-web-app-title",
-        content: BRAND_NAME,
-      },
+        {
+          name:
+            "description",
 
-      /*
-       * Search engine crawling
-       */
-      {
-        name: "robots",
-        content:
-          "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
-      },
-      {
-        name: "googlebot",
-        content:
-          "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
-      },
+          content:
+            HOME_DESCRIPTION,
+        },
 
-      /*
-       * Open Graph / Facebook / Messenger / WhatsApp
-       */
-      {
-        property: "og:title",
-        content: BRAND_NAME,
-      },
-      {
-        property: "og:description",
-        content: HOME_SOCIAL_DESCRIPTION,
-      },
-      {
-        property: "og:type",
-        content: "website",
-      },
-      {
-        property: "og:site_name",
-        content: BRAND_NAME,
-      },
-      {
-        property: "og:url",
-        content: HOME_URL,
-      },
-      {
-        property: "og:locale",
-        content: "en_US",
-      },
-      {
-        property: "og:image",
-        content: OG_IMAGE,
-      },
-      {
-        property: "og:image:secure_url",
-        content: OG_IMAGE,
-      },
-      {
-        property: "og:image:alt",
-        content: "ZZERKOFF chrome accessories",
-      },
+        {
+          name:
+            "author",
 
-      /*
-       * Twitter / X
-       */
-      {
-        name: "twitter:card",
-        content: "summary_large_image",
-      },
-      {
-        name: "twitter:title",
-        content: BRAND_NAME,
-      },
-      {
-        name: "twitter:description",
-        content: HOME_SOCIAL_DESCRIPTION,
-      },
-      {
-        name: "twitter:image",
-        content: OG_IMAGE,
-      },
-      {
-        name: "twitter:image:alt",
-        content: "ZZERKOFF chrome accessories",
-      },
-    ],
+          content:
+            BRAND_NAME,
+        },
 
-    links: [
-      /*
-       * Canonical
-       */
-      {
-        rel: "canonical",
-        href: HOME_URL,
-      },
+        {
+          name:
+            "application-name",
 
-      /*
-       * Main hero/logo preload
-       */
-      {
-        rel: "preload",
-        href: "/images/zzerkoff-logo.webp",
-        as: "image",
-        type: "image/webp",
-        fetchPriority: "high",
-      },
-    ],
+          content:
+            BRAND_NAME,
+        },
 
-    /*
-     * Safe JSON-LD.
-     * TanStack Router injects this into <head>.
-     * It does NOT render inside the homepage component.
-     */
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify(homepageSchema),
-      },
-    ],
-  }),
+        {
+          name:
+            "apple-mobile-web-app-title",
 
-  component: Index,
-});
+          content:
+            BRAND_NAME,
+        },
+
+        {
+          name:
+            "robots",
+
+          content:
+            "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+        },
+
+        {
+          name:
+            "googlebot",
+
+          content:
+            "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+        },
+
+        {
+          property:
+            "og:title",
+
+          content:
+            BRAND_NAME,
+        },
+
+        {
+          property:
+            "og:description",
+
+          content:
+            HOME_SOCIAL_DESCRIPTION,
+        },
+
+        {
+          property:
+            "og:type",
+
+          content:
+            "website",
+        },
+
+        {
+          property:
+            "og:site_name",
+
+          content:
+            BRAND_NAME,
+        },
+
+        {
+          property:
+            "og:url",
+
+          content:
+            HOME_URL,
+        },
+
+        {
+          property:
+            "og:locale",
+
+          content:
+            "en_US",
+        },
+
+        {
+          property:
+            "og:image",
+
+          content:
+            OG_IMAGE,
+        },
+
+        {
+          property:
+            "og:image:secure_url",
+
+          content:
+            OG_IMAGE,
+        },
+
+        {
+          property:
+            "og:image:alt",
+
+          content:
+            "ZZERKOFF chrome accessories",
+        },
+
+        {
+          name:
+            "twitter:card",
+
+          content:
+            "summary_large_image",
+        },
+
+        {
+          name:
+            "twitter:title",
+
+          content:
+            BRAND_NAME,
+        },
+
+        {
+          name:
+            "twitter:description",
+
+          content:
+            HOME_SOCIAL_DESCRIPTION,
+        },
+
+        {
+          name:
+            "twitter:image",
+
+          content:
+            OG_IMAGE,
+        },
+
+        {
+          name:
+            "twitter:image:alt",
+
+          content:
+            "ZZERKOFF chrome accessories",
+        },
+      ],
+
+      links: [
+        {
+          rel:
+            "canonical",
+
+          href:
+            HOME_URL,
+        },
+
+        {
+          rel:
+            "preload",
+
+          href:
+            "/images/zzerkoff-logo.webp",
+
+          as:
+            "image",
+
+          type:
+            "image/webp",
+
+          fetchPriority:
+            "high",
+        },
+      ],
+
+      scripts: [
+        {
+          type:
+            "application/ld+json",
+
+          children:
+            JSON.stringify(
+              homepageSchema,
+            ),
+        },
+      ],
+    }),
+
+    component:
+      Index,
+  });
 
 type HomeSection = {
   id: string;
@@ -244,14 +381,19 @@ type HomeJson = {
   hero_eyebrow?: string;
   hero_cta_label?: string;
   hero_cta_href?: string;
+
   show_current_drop?: boolean;
   show_featured?: boolean;
   show_categories?: boolean;
+
   statement_title?: string;
   statement_body?: string;
+
   about_title?: string;
   about_body?: string;
+
   archive_images?: string[];
+
   sections?: HomeSection[];
 };
 
@@ -268,142 +410,189 @@ function SectionLabel({
 }
 
 function Index() {
-  const [catalogReady, setCatalogReady] = useState(false);
+  /*
+   * IMPORTANT:
+   *
+   * Previous version waited 850ms
+   * before even starting the product
+   * and category requests.
+   *
+   * Requests now start immediately.
+   */
+  const {
+    data:
+      products = [],
 
-  useEffect(() => {
-    let finished = false;
-
-    const activate = () => {
-      if (finished) return;
-
-      finished = true;
-      setCatalogReady(true);
-    };
-
-    const timer = window.setTimeout(activate, 850);
-
-    window.addEventListener("scroll", activate, {
-      passive: true,
-      once: true,
-    });
-
-    window.addEventListener("pointerdown", activate, {
-      passive: true,
-      once: true,
-    });
-
-    return () => {
-      window.clearTimeout(timer);
-
-      window.removeEventListener("scroll", activate);
-      window.removeEventListener("pointerdown", activate);
-    };
-  }, []);
+    isLoading:
+      productsLoading,
+  } = useProducts();
 
   const {
-    data: products = [],
-    isLoading,
-  } = useProducts(catalogReady);
+    data:
+      categories = [],
+
+    isLoading:
+      categoriesLoading,
+  } = useCategories();
 
   const {
-    data: categories = [],
-  } = useCategories(catalogReady);
+    data:
+      currentCollection,
+  } =
+    useCurrentCollection();
 
   const {
-    data: currentCollection,
-  } = useCurrentCollection();
-
-  const {
-    page: homePage,
-  } = usePage("home");
+    page:
+      homePage,
+  } =
+    usePage(
+      "home",
+    );
 
   const home =
-    pageJson<HomeJson>(homePage);
+    pageJson<HomeJson>(
+      homePage,
+    );
 
-  const currentProducts = currentCollection
-    ? products.filter(
-        (product) =>
-          product.collection_id === currentCollection.id,
-      )
-    : products.filter(
-        (product) => product.new_collection,
-      );
+  const currentProducts =
+    currentCollection
+      ? products.filter(
+          (
+            product,
+          ) =>
+            product.collection_id ===
+            currentCollection.id,
+        )
+      : products.filter(
+          (
+            product,
+          ) =>
+            product.new_collection,
+        );
 
   const newDrop =
-    currentProducts.length > 0
+    currentProducts.length >
+    0
       ? currentProducts
       : products.filter(
-          (product) => product.new_collection,
+          (
+            product,
+          ) =>
+            product.new_collection,
         );
 
   const dropCode =
-    currentCollection?.collection_code ||
-    (currentCollection?.drop_number
+    currentCollection
+      ?.collection_code ||
+    (currentCollection
+      ?.drop_number
       ? `DROP ${String(
           currentCollection.drop_number,
-        ).padStart(3, "0")}`
+        ).padStart(
+          3,
+          "0",
+        )}`
       : "CURRENT DROP");
 
   const dropTagline =
-    currentCollection?.tagline ||
+    currentCollection
+      ?.tagline ||
     "Objects selected for the afterdark.";
 
   const objectTypes =
     Array.from(
       new Set(
-        newDrop.map((product) =>
-          product.category
-            .replace(/-/g, " ")
-            .toUpperCase(),
+        newDrop.map(
+          (
+            product,
+          ) =>
+            product.category
+              .replace(
+                /-/g,
+                " ",
+              )
+              .toUpperCase(),
         ),
       ),
-    ).join(" / ") || "OBJECTS";
+    ).join(" / ") ||
+    "OBJECTS";
 
   const featured =
     newDrop.find(
-      (product) => product.featured,
+      (
+        product,
+      ) =>
+        product.featured,
     ) ??
     newDrop[0] ??
     null;
 
-  const visibleCategories = useMemo(
-    () =>
-      categories
-        .map((category) => ({
-          category,
+  const visibleCategories =
+    useMemo(
+      () =>
+        categories
+          .map(
+            (
+              category,
+            ) => ({
+              category,
 
-          count: products.filter(
-            (product) =>
-              product.category === category.slug,
-          ).length,
-        }))
-        .filter(
-          (item) => item.count > 0,
-        ),
+              count:
+                products.filter(
+                  (
+                    product,
+                  ) =>
+                    product.category ===
+                    category.slug,
+                ).length,
+            }),
+          )
+          .filter(
+            (
+              item,
+            ) =>
+              item.count >
+              0,
+          ),
 
-    [categories, products],
-  );
+      [
+        categories,
+        products,
+      ],
+    );
 
-  const catalogLoaded =
-    catalogReady && !isLoading;
-
+  /*
+   * Drop section now displays
+   * skeleton while products load.
+   *
+   * It no longer disappears
+   * while waiting for Supabase.
+   */
   const showDrop =
-    (home.show_current_drop ?? true) &&
-    catalogLoaded &&
-    newDrop.length > 0;
+    (home.show_current_drop ??
+      true) &&
+    (productsLoading ||
+      newDrop.length >
+        0);
 
   const showFeatured =
-    (home.show_featured ?? true) &&
-    catalogLoaded &&
+    (home.show_featured ??
+      true) &&
+    !productsLoading &&
     !!featured;
 
   const showCategories =
-    (home.show_categories ?? true) &&
-    catalogLoaded &&
-    visibleCategories.length > 0;
+    (home.show_categories ??
+      true) &&
+    !productsLoading &&
+    !categoriesLoading &&
+    visibleCategories.length >
+      0;
 
   const hasDropTarget =
-    newDrop.length > 0;
+    productsLoading ||
+    newDrop.length >
+      0;
 
   const heroCtaLabel =
     home.hero_cta_label?.trim() ||
@@ -417,53 +606,79 @@ function Index() {
       ? "/collection"
       : "/shop");
 
-  const statementTitle = (
-    home.statement_title ??
-    "NOT MADE\nTO BLEND IN."
-  ).split("\n");
+  const statementTitle =
+    (
+      home.statement_title ??
+      "NOT MADE\nTO BLEND IN."
+    ).split(
+      "\n",
+    );
 
-  const aboutBody = (
-    home.about_body ??
-    "Zzerkoff is a unisex accessories label inspired by vintage metal, chrome, gothic fashion, Y2K and underground street culture.\n\nCreated for people who prefer bold identities over ordinary trends.\n\nFor those who don't blend in."
-  )
-    .split("\n\n")
-    .filter(Boolean);
+  const aboutBody =
+    (
+      home.about_body ??
+      "Zzerkoff is a unisex accessories label inspired by vintage metal, chrome, gothic fashion, Y2K and underground street culture.\n\nCreated for people who prefer bold identities over ordinary trends.\n\nFor those who don't blend in."
+    )
+      .split(
+        "\n\n",
+      )
+      .filter(
+        Boolean,
+      );
 
   const archiveImages =
-    home.archive_images ?? [];
+    home.archive_images ??
+    [];
 
   const customSections =
-    (home.sections ?? []).filter(
-      (section) => section.enabled,
+    (
+      home.sections ?? []
+    ).filter(
+      (
+        section,
+      ) =>
+        section.enabled,
     );
 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-background">
       <Header />
 
-      {/* HERO */}
+      {/* HERO — INSTANT */}
 
       <section className="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 text-center">
         <LiquidChrome
           className="left-1/2 top-1/2 h-[52rem] w-[52rem] -translate-x-1/2 -translate-y-1/2"
-          opacity={0.3}
-          blur={30}
+          opacity={
+            0.3
+          }
+          blur={
+            30
+          }
         />
 
         <LiquidChrome
           className="-right-32 bottom-0 h-[30rem] w-[30rem]"
-          opacity={0.12}
+          opacity={
+            0.12
+          }
           flip
         />
 
         <div className="grain-overlay" />
 
-        <Reveal immediate>
+        <Reveal
+          immediate
+        >
           <img
             src="/images/zzerkoff-logo.webp"
             alt="ZZERKOFF liquid chrome ZZ monogram"
-            width={720}
-            height={720}
+            width={
+              720
+            }
+            height={
+              720
+            }
             fetchPriority="high"
             decoding="async"
             className="mx-auto w-[68vw] max-w-[34rem] animate-float-slow mix-blend-lighten contrast-125"
@@ -471,16 +686,18 @@ function Index() {
         </Reveal>
 
         <Reveal
-          delay={200}
+          immediate
           className="mt-2"
         >
           <h1 className="chrome-text font-display text-3xl tracking-[0.3em] sm:text-5xl">
-            {homePage?.title ||
+            {homePage
+              ?.title ||
               "Zzerkoff"}
           </h1>
 
           <p className="mt-6 font-editorial text-lg italic text-chrome/80 sm:text-2xl">
-            {homePage?.subtitle ||
+            {homePage
+              ?.subtitle ||
               "Objects for the Afterdark."}
           </p>
 
@@ -491,16 +708,20 @@ function Index() {
         </Reveal>
 
         <Reveal
-          delay={420}
+          immediate
           className="mt-12"
         >
           <a
-            href={heroCtaHref}
-            className="group inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground backdrop-blur-md transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
+            href={
+              heroCtaHref
+            }
+            className="group inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground backdrop-blur-md transition-all duration-500 hover:border-chrome hover:bg-white/[0.08]"
           >
-            {heroCtaLabel}
+            {
+              heroCtaLabel
+            }
 
-            <span className="transition-transform duration-700 group-hover:translate-x-1">
+            <span className="transition-transform duration-300 group-hover:translate-x-1">
               →
             </span>
           </a>
@@ -518,34 +739,54 @@ function Index() {
         >
           <LiquidChrome
             className="-left-48 top-24 h-[34rem] w-[34rem]"
-            opacity={0.14}
+            opacity={
+              0.14
+            }
           />
 
           <div className="mx-auto max-w-7xl">
             <Reveal className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <SectionLabel>
-                  ZZ / COLLECTION
+                  ZZ /
+                  COLLECTION
                 </SectionLabel>
 
                 <h2 className="mt-5 font-display text-3xl tracking-[0.2em] text-foreground sm:text-5xl">
-                  {dropCode}
+                  {
+                    dropCode
+                  }
                 </h2>
 
                 <p className="mt-4 font-editorial text-lg italic text-muted-foreground">
-                  {dropTagline}
+                  {
+                    dropTagline
+                  }
                 </p>
               </div>
 
               <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
-                {objectTypes}
+                {
+                  objectTypes
+                }
               </p>
             </Reveal>
 
-            <div className="mt-14">
+            {/*
+             * PHONE:
+             * CSS displays only first 3.
+             *
+             * DESKTOP:
+             * Full grid.
+             */}
+            <div className="home-mobile-product-limit mt-14">
               <ProductGrid
-                products={newDrop}
-                loading={false}
+                products={
+                  newDrop
+                }
+                loading={
+                  productsLoading
+                }
               />
             </div>
           </div>
@@ -559,7 +800,9 @@ function Index() {
           <section className="perf-below-fold relative isolate overflow-hidden px-5 py-24 sm:px-8">
             <LiquidChrome
               className="-right-40 top-0 h-[42rem] w-[42rem]"
-              opacity={0.2}
+              opacity={
+                0.2
+              }
               flip
             />
 
@@ -569,22 +812,34 @@ function Index() {
                   src={
                     featured.primary_image
                   }
-                  alt={featured.name}
-                  width={1024}
-                  height={1280}
+                  alt={
+                    featured.name
+                  }
+                  width={
+                    1024
+                  }
+                  height={
+                    1280
+                  }
                   className="aspect-4/5 w-full object-cover grayscale"
                 />
 
                 <div className="grain-overlay" />
               </Reveal>
 
-              <Reveal delay={150}>
+              <Reveal
+                delay={
+                  80
+                }
+              >
                 <SectionLabel>
                   {`${dropCode} / 01`}
                 </SectionLabel>
 
                 <h2 className="mt-5 font-display text-2xl tracking-[0.18em] text-foreground sm:text-4xl">
-                  {featured.name}
+                  {
+                    featured.name
+                  }
                 </h2>
 
                 <p className="mt-5 text-sm tracking-[0.25em] text-chrome">
@@ -604,13 +859,15 @@ function Index() {
                 <Link
                   to="/product/$slug"
                   params={{
-                    slug: featured.slug,
+                    slug:
+                      featured.slug,
                   }}
-                  className="group mt-12 inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
+                  preload="intent"
+                  className="group mt-12 inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground transition-all duration-500 hover:border-chrome hover:bg-white/[0.08]"
                 >
                   View object
 
-                  <ArrowUpRight className="size-4 transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </Link>
               </Reveal>
             </div>
@@ -624,7 +881,8 @@ function Index() {
           <div className="mx-auto max-w-7xl">
             <Reveal>
               <SectionLabel>
-                SHOP BY OBJECT
+                SHOP BY
+                OBJECT
               </SectionLabel>
             </Reveal>
 
@@ -642,15 +900,20 @@ function Index() {
                       category.slug
                     }
                     delay={
-                      index * 120
+                      index *
+                      60
                     }
                   >
                     <CategoryCard
                       category={
                         category
                       }
-                      index={index}
-                      count={count}
+                      index={
+                        index
+                      }
+                      count={
+                        count
+                      }
                     />
                   </Reveal>
                 ),
@@ -663,9 +926,14 @@ function Index() {
       {/* CUSTOM HOME SECTIONS */}
 
       {customSections.map(
-        (section, index) => (
+        (
+          section,
+          index,
+        ) => (
           <section
-            key={section.id}
+            key={
+              section.id
+            }
             className="perf-below-fold relative isolate px-5 py-20 sm:px-8 sm:py-28"
           >
             <div
@@ -684,11 +952,16 @@ function Index() {
                     alt={
                       section.title ||
                       `Home section ${
-                        index + 1
+                        index +
+                        1
                       }`
                     }
-                    width={1200}
-                    height={1400}
+                    width={
+                      1000
+                    }
+                    height={
+                      1200
+                    }
                     className="aspect-4/5 w-full object-cover grayscale"
                   />
                 </Reveal>
@@ -697,7 +970,7 @@ function Index() {
               <Reveal
                 delay={
                   section.image
-                    ? 120
+                    ? 60
                     : 0
                 }
               >
@@ -750,7 +1023,9 @@ function Index() {
       <section className="perf-below-fold relative isolate overflow-hidden px-5 py-36 sm:px-8 sm:py-48">
         <LiquidChrome
           className="left-1/2 top-1/2 h-[44rem] w-[44rem] -translate-x-1/2 -translate-y-1/2"
-          opacity={0.16}
+          opacity={
+            0.16
+          }
         />
 
         <div className="mx-auto max-w-5xl">
@@ -765,14 +1040,20 @@ function Index() {
                     key={`${line}-${index}`}
                     className="block"
                   >
-                    {line}
+                    {
+                      line
+                    }
                   </span>
                 ),
               )}
             </h2>
           </Reveal>
 
-          <Reveal delay={200}>
+          <Reveal
+            delay={
+              80
+            }
+          >
             <p className="mt-12 max-w-xl font-editorial text-lg leading-relaxed text-muted-foreground sm:text-xl">
               {home.statement_body ||
                 "ZZERKOFF explores metal, distortion, vintage forms and underground culture through unisex accessories."}
@@ -794,7 +1075,8 @@ function Index() {
             </h2>
 
             <SectionLabel>
-              ZZ / VISUAL SERIES 001
+              ZZ / VISUAL
+              SERIES 001
             </SectionLabel>
           </Reveal>
 
@@ -807,17 +1089,28 @@ function Index() {
                       archiveImages[0]
                     }
                     alt="ZZERKOFF archive image"
-                    width={1200}
-                    height={1504}
+                    width={
+                      1000
+                    }
+                    height={
+                      1250
+                    }
                     className="aspect-4/5 w-full object-cover grayscale"
                   />
                 ) : (
                   <img
-                    src={campaign1}
+                    src={
+                      campaign1
+                    }
                     alt="Hands wearing chrome rings, flash photography"
                     loading="lazy"
-                    width={1200}
-                    height={1504}
+                    decoding="async"
+                    width={
+                      1000
+                    }
+                    height={
+                      1250
+                    }
                     className="aspect-4/5 w-full object-cover grayscale"
                   />
                 )}
@@ -827,7 +1120,7 @@ function Index() {
             </Reveal>
 
             <div className="flex flex-col gap-4 sm:gap-6 lg:col-span-5">
-              <Reveal delay={140}>
+              <Reveal>
                 <figure className="glass-panel relative overflow-hidden rounded-[26px]">
                   {archiveImages[1] ? (
                     <SmartImage
@@ -835,17 +1128,28 @@ function Index() {
                         archiveImages[1]
                       }
                       alt="ZZERKOFF archive image"
-                      width={1200}
-                      height={912}
+                      width={
+                        1000
+                      }
+                      height={
+                        750
+                      }
                       className="aspect-4/3 w-full object-cover grayscale"
                     />
                   ) : (
                     <img
-                      src={campaign2}
+                      src={
+                        campaign2
+                      }
                       alt="Model in dark outfit with chrome chains"
                       loading="lazy"
-                      width={1200}
-                      height={912}
+                      decoding="async"
+                      width={
+                        1000
+                      }
+                      height={
+                        750
+                      }
                       className="aspect-4/3 w-full object-cover grayscale"
                     />
                   )}
@@ -854,7 +1158,7 @@ function Index() {
                 </figure>
               </Reveal>
 
-              <Reveal delay={260}>
+              <Reveal>
                 <figure className="glass-panel relative overflow-hidden rounded-[26px]">
                   {archiveImages[2] ? (
                     <SmartImage
@@ -862,8 +1166,12 @@ function Index() {
                         archiveImages[2]
                       }
                       alt="ZZERKOFF archive image"
-                      width={1024}
-                      height={1024}
+                      width={
+                        900
+                      }
+                      height={
+                        900
+                      }
                       className="aspect-square w-full object-cover grayscale"
                     />
                   ) : products[1]
@@ -877,17 +1185,28 @@ function Index() {
                         products[1]
                           .name
                       }
-                      width={1024}
-                      height={1024}
+                      width={
+                        900
+                      }
+                      height={
+                        900
+                      }
                       className="aspect-square w-full object-cover grayscale"
                     />
                   ) : (
                     <img
-                      src={campaign2}
+                      src={
+                        campaign2
+                      }
                       alt="ZZERKOFF campaign"
                       loading="lazy"
-                      width={1024}
-                      height={1024}
+                      decoding="async"
+                      width={
+                        900
+                      }
+                      height={
+                        900
+                      }
                       className="aspect-square w-full object-cover grayscale"
                     />
                   )}
@@ -908,7 +1227,9 @@ function Index() {
       >
         <LiquidChrome
           className="-left-32 bottom-0 h-[30rem] w-[30rem]"
-          opacity={0.12}
+          opacity={
+            0.12
+          }
         />
 
         <div className="mx-auto max-w-3xl">
@@ -919,7 +1240,11 @@ function Index() {
             </h2>
           </Reveal>
 
-          <Reveal delay={160}>
+          <Reveal
+            delay={
+              60
+            }
+          >
             <div className="mt-10 space-y-6 font-editorial text-lg leading-relaxed text-muted-foreground">
               {aboutBody.map(
                 (
@@ -936,7 +1261,9 @@ function Index() {
                         : ""
                     }
                   >
-                    {paragraph}
+                    {
+                      paragraph
+                    }
                   </p>
                 ),
               )}
