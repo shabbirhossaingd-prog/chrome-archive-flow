@@ -1,5 +1,6 @@
 import {
   createFileRoute,
+  Link,
 } from "@tanstack/react-router";
 
 import {
@@ -148,6 +149,15 @@ function HomePage() {
       collection,
   } =
     useCurrentCollection();
+
+
+  const dropCode =
+    collection?.collection_code ||
+    (collection?.drop_number
+      ? `DROP ${String(
+          collection.drop_number,
+        ).padStart(3, "0")}`
+      : "CURRENT DROP");
 
 
   const {
@@ -382,6 +392,45 @@ function HomePage() {
               Objects for the Afterdark.
 
             </p>
+
+
+            <Link
+              to="/collection"
+              className="
+                group
+                mt-12
+                inline-flex
+                items-center
+                gap-4
+                rounded-full
+                border
+                border-chrome/50
+                bg-white/[0.04]
+                px-8
+                py-5
+                text-[10px]
+                uppercase
+                tracking-[0.45em]
+                text-foreground
+                backdrop-blur-md
+                transition-all
+                duration-700
+                hover:border-chrome
+                hover:bg-white/[0.08]
+              "
+            >
+              Enter {dropCode}
+
+              <span
+                className="
+                  transition-transform
+                  duration-700
+                  group-hover:translate-x-1
+                "
+              >
+                →
+              </span>
+            </Link>
 
 
           </Reveal>
