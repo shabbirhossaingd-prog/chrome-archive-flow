@@ -484,15 +484,7 @@ function Index() {
   const dropCode =
     currentCollection
       ?.collection_code ||
-    (currentCollection
-      ?.drop_number
-      ? `DROP ${String(
-          currentCollection.drop_number,
-        ).padStart(
-          3,
-          "0",
-        )}`
-      : "CURRENT DROP");
+    "CURRENT DROP";
 
   const dropTagline =
     currentCollection
