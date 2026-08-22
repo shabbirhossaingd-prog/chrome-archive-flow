@@ -1,73 +1,238 @@
-import React, { createContext, useContext } from "react";
-import { queryOptions, useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-import { SITE, formatPrice, whatsappUrl } from "./site-config";
+import React, {
+  createContext,
+  useContext,
+} from "react";
 
-export type SiteSettings = Database["public"]["Tables"]["site_settings"]["Row"];
+import {
+  queryOptions,
+  useQuery,
+} from "@tanstack/react-query";
 
-export const settingsQuery = queryOptions({
-  queryKey: ["site-settings"],
-  staleTime: 1000 * 60 * 5,
-  queryFn: async (): Promise<SiteSettings | null> => {
-    const { data, error } = await supabase
-      .from("site_settings")
-      .select("*")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-});
+import {
+  supabase,
+} from "@/integrations/supabase/client";
 
-type SiteContextType = ReturnType<typeof useSiteHook>;
+import type {
+  Database,
+} from "@/integrations/supabase/types";
 
-const SiteContext = createContext<SiteContextType | null>(null);
+import {
+  SITE,
+  formatPrice,
+  whatsappUrl,
+} from "./site-config";
+
+
+export type SiteSettings =
+  Database["public"]["Tables"]["site_settings"]["Row"];
+
+
+export const settingsQuery =
+  queryOptions({
+
+    queryKey: [
+      "site-settings",
+    ],
+
+    staleTime:
+      1000 * 60 * 5,
+
+    queryFn:
+      async (): Promise<SiteSettings | null> => {
+
+        const {
+          data,
+          error,
+        } =
+          await supabase
+            .from("site_settings")
+            .select("*")
+            .order(
+              "created_at",
+              {
+                ascending: true,
+              },
+            )
+            .limit(1)
+            .maybeSingle();
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        return data;
+
+      },
+
+  });
+
+
+
+type SiteContextType =
+  ReturnType<
+    typeof useSiteHook
+  >;
+
+
+const SiteContext =
+  createContext<SiteContextType | null>(
+    null,
+  );
+
+
 
 function useSiteHook() {
-  const { data } = useQuery(settingsQuery);
 
-  const brand = data?.brand_name || SITE.brand;
-  const whatsappNumber = (data?.whatsapp_number || SITE.whatsappNumber).replace(/\D/g, "");
-  const instagramUrl = data?.instagram_url || SITE.instagramUrl;
-  const email = data?.email || SITE.email;
-  const location = data?.location || SITE.location;
-  const currencySymbol = data?.currency_symbol || SITE.currencySymbol;
-  const currencyCode = data?.currency_code || SITE.currencyCode;
+  const {
+    data,
+  } =
+    useQuery(
+      settingsQuery,
+    );
+
+
+  const brand =
+    data?.brand_name ??
+    SITE.brand;
+
+
+  const whatsappNumber =
+    String(
+      data?.whatsapp_number ??
+      SITE.whatsappNumber,
+    )
+      .replace(
+        /\D/g,
+        "",
+      );
+
+
+  const instagramUrl =
+    data?.instagram_url ??
+    SITE.instagramUrl;
+
+
+  const email =
+    data?.email ??
+    SITE.email;
+
+
+  const location =
+    data?.location ??
+    SITE.location;
+
+
+  const currencySymbol =
+    data?.currency_symbol ??
+    SITE.currencySymbol;
+
+
+  const currencyCode =
+    data?.currency_code ??
+    SITE.currencyCode;
+
+
 
   return {
-    settings: data ?? null,
+
+    settings:
+      data ?? null,
+
     brand,
-    tagline: SITE.tagline,
-    delivery: SITE.delivery,
+
+    tagline:
+      SITE.tagline,
+
+    delivery:
+      SITE.delivery,
+
     instagramUrl,
-    instagramHandle: SITE.instagramHandle,
+
+    instagramHandle:
+      SITE.instagramHandle,
+
     email,
-    emailHref: `mailto:${email}`,
+
+    emailHref:
+      `mailto:${email}`,
+
     location,
+
     whatsappNumber,
-    whatsappDisplay: `+${whatsappNumber}`,
-    whatsappHref: `https://wa.me/${whatsappNumber}`,
+
+    whatsappDisplay:
+      `+${whatsappNumber}`,
+
+    whatsappHref:
+      `https://wa.me/${whatsappNumber}`,
+
     currencySymbol,
+
     currencyCode,
-    wa: (text: string) => whatsappUrl(text, whatsappNumber),
-    price: (n: number | string) => formatPrice(n, currencySymbol),
+
+    wa:
+      (text: string) =>
+        whatsappUrl(
+          text,
+          whatsappNumber,
+        ),
+
+    price:
+      (n: number | string) =>
+        formatPrice(
+          n,
+          currencySymbol,
+        ),
+
   };
+
 }
 
-export function SiteProvider({ children }: { children: React.ReactNode }) {
-  const siteData = useSiteHook();
-  return React.createElement(
-    SiteContext.Provider,
-    { value: siteData },
-    children
+
+
+export function SiteProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+
+  const siteData =
+    useSiteHook();
+
+
+  return (
+
+    <SiteContext.Provider
+      value={
+        siteData
+      }
+    >
+
+      {children}
+
+    </SiteContext.Provider>
+
   );
+
 }
 
-/** Central access to the brand's business settings, with safe fallbacks. */
+
+
 export function useSite() {
-  const context = useContext(SiteContext);
-  if (context) return context;
+
+  const context =
+    useContext(
+      SiteContext,
+    );
+
+
+  if (context) {
+    return context;
+  }
+
+
   return useSiteHook();
+
 }
