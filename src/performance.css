@@ -1,123 +1,48 @@
-/*
- * ZZERKOFF PERFORMANCE V1
- *
- * Desktop:
- * Full chrome / glass visual.
- *
- * Phone:
- * Same design direction with
- * cheaper GPU / compositor work.
- */
+/* ZZERKOFF Performance & GPU Optimizations */
 
 .liquid-chrome-image {
-  filter:
-    blur(var(--liquid-blur, 22px))
-    grayscale(1)
-    contrast(1.35);
-
+  filter: blur(var(--liquid-blur, 22px)) grayscale(1) contrast(1.35);
   will-change: transform;
 }
 
-/*
- * PHONE / SMALL TABLET
- */
 @media (max-width: 767px) {
-  /*
-   * Glass blur is one of the most
-   * expensive effects on mobile GPUs.
-   *
-   * Keep the glass look,
-   * reduce live backdrop processing.
-   */
   .glass-panel {
-    backdrop-filter:
-      blur(5px)
-      saturate(106%);
-
-    -webkit-backdrop-filter:
-      blur(5px)
-      saturate(106%);
+    backdrop-filter: blur(5px) saturate(106%);
+    -webkit-backdrop-filter: blur(5px) saturate(106%);
   }
 
-  /*
-   * Decorative chrome stays visible,
-   * but does not continuously animate.
-   */
   .liquid-chrome-image {
-    filter:
-      blur(8px)
-      grayscale(1)
-      contrast(1.25);
-
+    filter: blur(8px) grayscale(1) contrast(1.25);
     animation: none !important;
     will-change: auto;
   }
 
-  /*
-   * Hero float animation is decorative.
-   * Disable on phones.
-   */
   .animate-float-slow,
   .animate-drift {
     animation: none !important;
   }
 
-  /*
-   * Keep grain subtle.
-   */
   .grain-overlay {
     opacity: 0.07;
   }
 
-  /*
-   * Mobile should feel responsive,
-   * not wait almost a second for
-   * every section/card reveal.
-   */
   .reveal {
-    transition-duration:
-      280ms !important;
-
-    transition-delay:
-      0ms !important;
-
-    transform:
-      translateY(12px);
+    transition-duration: 280ms !important;
+    transition-delay: 0ms !important;
+    transform: translateY(12px);
   }
 
-  /*
-   * Homepage:
-   * only first 3 Current Drop cards
-   * are displayed on phone.
-   *
-   * Desktop/tablet keeps the full grid.
-   */
-  .home-mobile-product-limit
-    > div
-    > :nth-child(n + 4) {
+  .home-mobile-product-limit > div > :nth-child(n + 4) {
     display: none !important;
   }
 
-  /*
-   * Browser can postpone rendering
-   * sections far outside viewport.
-   */
   .perf-below-fold {
-    content-visibility:
-      auto;
-
-    contain-intrinsic-size:
-      auto 800px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 800px;
   }
 }
 
-/*
- * Users asking for reduced motion
- */
-@media (
-  prefers-reduced-motion:
-    reduce
-) {
+@media (prefers-reduced-motion: reduce) {
   .liquid-chrome-image,
   .animate-float-slow,
   .animate-drift,
@@ -126,10 +51,7 @@
   }
 
   .reveal {
-    transition-duration:
-      1ms !important;
-
-    transition-delay:
-      0ms !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
   }
 }
