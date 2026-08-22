@@ -4,7 +4,6 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { Marquee } from "@/components/site/Marquee";
 import { LiquidChrome } from "@/components/site/LiquidChrome";
-import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { Toaster } from "@/components/ui/sonner";
 import { useCategories, useProducts, formatPrice } from "@/lib/products";
@@ -37,7 +36,9 @@ export const Route = createFileRoute("/")({
 
 function SectionLabel({ children }: { children: string }) {
   return (
-    <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">{children}</span>
+    <span className="text-[10px] uppercase tracking-[0.45em] text-muted-foreground">
+      {children}
+    </span>
   );
 }
 
@@ -50,16 +51,23 @@ function Index() {
     ? products.filter((p) => p.collection_id === currentCollection.id)
     : products.filter((p) => p.new_collection);
 
-  const newDrop = currentProducts.length ? currentProducts : products.filter((p) => p.new_collection);
+  const newDrop = currentProducts.length
+    ? currentProducts
+    : products.filter((p) => p.new_collection);
+
   const dropCode =
     currentCollection?.collection_code ||
     (currentCollection?.drop_number
       ? `DROP ${String(currentCollection.drop_number).padStart(3, "0")}`
       : "CURRENT DROP");
-  const dropTagline = currentCollection?.tagline || "Objects selected for the afterdark.";
+
+  const dropTagline =
+    currentCollection?.tagline || "Objects selected for the afterdark.";
+
   const objectTypes =
-    Array.from(new Set(newDrop.map((p) => p.category.replace(/-/g, " ").toUpperCase()))).join(" / ") ||
-    "OBJECTS";
+    Array.from(
+      new Set(newDrop.map((p) => p.category.replace(/-/g, " ").toUpperCase()))
+    ).join(" / ") || "OBJECTS";
 
   const featuredList = newDrop.filter((p) => p.featured);
   const featured = featuredList[0] ?? newDrop[0] ?? products[0];
@@ -75,7 +83,11 @@ function Index() {
           opacity={0.3}
           blur={30}
         />
-        <LiquidChrome className="-right-32 bottom-0 h-[30rem] w-[30rem]" opacity={0.12} flip />
+        <LiquidChrome
+          className="-right-32 bottom-0 h-[30rem] w-[30rem]"
+          opacity={0.12}
+          flip
+        />
         <div className="grain-overlay" />
 
         <Reveal>
@@ -106,7 +118,9 @@ function Index() {
             className="group inline-flex items-center gap-4 rounded-full border border-chrome/50 bg-white/[0.04] px-8 py-5 text-[10px] uppercase tracking-[0.45em] text-foreground backdrop-blur-md transition-all duration-700 hover:border-chrome hover:bg-white/[0.08]"
           >
             Enter {dropCode}
-            <span className="transition-transform duration-700 group-hover:translate-x-1">→</span>
+            <span className="transition-transform duration-700 group-hover:translate-x-1">
+              →
+            </span>
           </Link>
         </Reveal>
       </section>
@@ -114,8 +128,14 @@ function Index() {
       <Marquee />
 
       {/* DROP 001 */}
-      <section id="drop" className="relative isolate scroll-mt-28 px-5 py-28 sm:px-8 sm:py-36">
-        <LiquidChrome className="-left-48 top-24 h-[34rem] w-[34rem]" opacity={0.14} />
+      <section
+        id="drop"
+        className="relative isolate scroll-mt-28 px-5 py-28 sm:px-8 sm:py-36"
+      >
+        <LiquidChrome
+          className="-left-48 top-24 h-[34rem] w-[34rem]"
+          opacity={0.14}
+        />
         <div className="mx-auto max-w-7xl">
           <Reveal className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -133,14 +153,22 @@ function Index() {
           </Reveal>
 
           <div className="mt-14">
-            <ProductGrid products={newDrop} loading={isLoading} empty="New objects arriving soon." />
+            <ProductGrid
+              products={newDrop}
+              loading={isLoading}
+              empty="New objects arriving soon."
+            />
           </div>
         </div>
       </section>
 
       {/* FEATURED */}
       <section className="relative isolate overflow-hidden px-5 py-24 sm:px-8">
-        <LiquidChrome className="-right-40 top-0 h-[42rem] w-[42rem]" opacity={0.2} flip />
+        <LiquidChrome
+          className="-right-40 top-0 h-[42rem] w-[42rem]"
+          opacity={0.2}
+          flip
+        />
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <Reveal className="glass-panel relative overflow-hidden rounded-[28px]">
             <SmartImage
@@ -212,15 +240,18 @@ function Index() {
           </Reveal>
           <Reveal delay={200}>
             <p className="mt-12 max-w-xl font-editorial text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              ZZERKOFF explores metal, distortion, vintage forms and underground culture through
-              unisex accessories.
+              ZZERKOFF explores metal, distortion, vintage forms and underground
+              culture through unisex accessories.
             </p>
           </Reveal>
         </div>
       </section>
 
       {/* ARCHIVE */}
-      <section id="archive" className="relative scroll-mt-28 px-5 py-24 sm:px-8">
+      <section
+        id="archive"
+        className="relative scroll-mt-28 px-5 py-24 sm:px-8"
+      >
         <div className="mx-auto max-w-7xl">
           <Reveal className="flex items-end justify-between gap-6">
             <h2 className="font-display text-3xl tracking-[0.2em] text-foreground sm:text-5xl">
@@ -277,8 +308,14 @@ function Index() {
       </section>
 
       {/* ABOUT */}
-      <section id="about" className="relative isolate scroll-mt-28 px-5 py-32 sm:px-8">
-        <LiquidChrome className="-left-32 bottom-0 h-[30rem] w-[30rem]" opacity={0.12} />
+      <section
+        id="about"
+        className="relative isolate scroll-mt-28 px-5 py-32 sm:px-8"
+      >
+        <LiquidChrome
+          className="-left-32 bottom-0 h-[30rem] w-[30rem]"
+          opacity={0.12}
+        />
         <div className="mx-auto max-w-3xl">
           <Reveal>
             <h2 className="font-display text-2xl tracking-[0.2em] text-foreground sm:text-4xl">
@@ -288,10 +325,14 @@ function Index() {
           <Reveal delay={160}>
             <div className="mt-10 space-y-6 font-editorial text-lg leading-relaxed text-muted-foreground">
               <p>
-                Zzerkoff is a unisex accessories label inspired by vintage metal, chrome, gothic
-                fashion, Y2K and underground street culture.
+                Zzerkoff is a unisex accessories label inspired by vintage
+                metal, chrome, gothic fashion, Y2K and underground street
+                culture.
               </p>
-              <p>Created for people who prefer bold identities over ordinary trends.</p>
+              <p>
+                Created for people who prefer bold identities over ordinary
+                trends.
+              </p>
               <p className="text-chrome">For those who don't blend in.</p>
             </div>
           </Reveal>
