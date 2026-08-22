@@ -17,13 +17,6 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 
-import {
-  CartProvider,
-} from "@/components/cart";
-
-import {
-  WishlistProvider,
-} from "@/components/wishlist";
 
 import {
   SiteProvider,
