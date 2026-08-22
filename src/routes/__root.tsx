@@ -98,25 +98,7 @@ function RootComponent() {
 
     <SiteProvider>
 
-      <CartProvider>
-
-        <WishlistProvider>
-
-          <TooltipProvider>
-
-            <HeadContent />
-
-            <Outlet />
-
-            <Toaster />
-
-            <Scripts />
-
-          </TooltipProvider>
-
-        </WishlistProvider>
-
-      </CartProvider>
+     
 
     </SiteProvider>
 
