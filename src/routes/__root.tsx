@@ -22,7 +22,6 @@ import {
   SiteProvider,
 } from "@/lib/settings";
 
-import "@/index.css";
 import "@/performance.css";
 
 
