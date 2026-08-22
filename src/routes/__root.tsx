@@ -95,19 +95,21 @@ export const Route =
 function RootComponent() {
 
   return (
-  <SiteProvider>
+    <SiteProvider>
 
-    <TooltipProvider>
+      <TooltipProvider>
 
-      <HeadContent />
+        <HeadContent />
 
-      <Outlet />
+        <Outlet />
 
-      <Toaster />
+        <Toaster />
 
-      <Scripts />
+        <Scripts />
 
-    </TooltipProvider>
+      </TooltipProvider>
 
-  </SiteProvider>
-);
+    </SiteProvider>
+  );
+
+}
