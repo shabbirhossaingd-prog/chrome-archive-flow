@@ -1,3 +1,4 @@
+import React, { createContext, useContext } from "react";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -20,8 +21,11 @@ export const settingsQuery = queryOptions({
   },
 });
 
-/** Central access to the brand's business settings, with safe fallbacks. */
-export function useSite() {
+type SiteContextType = ReturnType<typeof useSiteHook>;
+
+const SiteContext = createContext<SiteContextType | null>(null);
+
+function useSiteHook() {
   const { data } = useQuery(settingsQuery);
 
   const brand = data?.brand_name || SITE.brand;
@@ -51,16 +55,19 @@ export function useSite() {
     price: (n: number | string) => formatPrice(n, currencySymbol),
   };
 }
-import React, { createContext, useContext } from "react";
-
-const SiteContext = createContext<unknown>(null);
 
 export function SiteProvider({ children }: { children: React.ReactNode }) {
+  const siteData = useSiteHook();
   return React.createElement(
     SiteContext.Provider,
-    { value: {} },
+    { value: siteData },
     children
   );
 }
 
-export const useSite = () => useContext(SiteContext);
+/** Central access to the brand's business settings, with safe fallbacks. */
+export function useSite() {
+  const context = useContext(SiteContext);
+  if (context) return context;
+  return useSiteHook();
+}
