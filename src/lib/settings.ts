@@ -51,3 +51,18 @@ export function useSite() {
     price: (n: number | string) => formatPrice(n, currencySymbol),
   };
 }
+// src/lib/settings.ts ফাইলের নিচে এটি যোগ করুন
+
+import React, { createContext, useContext } from "react";
+
+const SiteContext = createContext<unknown>(null);
+
+export function SiteProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <SiteContext.Provider value={{}}>
+      {children}
+    </SiteContext.Provider>
+  );
+}
+
+export const useSite = () => useContext(SiteContext);
