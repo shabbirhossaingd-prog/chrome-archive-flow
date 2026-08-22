@@ -17,7 +17,7 @@ import campaign2 from "@/assets/campaign-2.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ZZERKOFF — Objects for the Afterdark" },
+      { title: "ZZERKOFF" },
       {
         name: "description",
         content:
@@ -57,9 +57,7 @@ function Index() {
 
   const dropCode =
     currentCollection?.collection_code ||
-    (currentCollection?.drop_number
-      ? `DROP ${String(currentCollection.drop_number).padStart(3, "0")}`
-      : "CURRENT DROP");
+    "CURRENT DROP";
 
   const dropTagline =
     currentCollection?.tagline || "Objects selected for the afterdark.";
@@ -96,6 +94,8 @@ function Index() {
             alt="ZZERKOFF liquid chrome ZZ monogram"
             width={720}
             height={720}
+            fetchPriority="high"
+            decoding="async"
             className="mx-auto w-[68vw] max-w-[34rem] animate-float-slow mix-blend-lighten contrast-125"
           />
         </Reveal>
