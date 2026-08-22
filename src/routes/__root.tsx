@@ -5,8 +5,9 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 
-import type {
+import {
   QueryClient,
+  QueryClientProvider,
 } from "@tanstack/react-query";
 
 import {
@@ -17,11 +18,11 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 
-
 import {
   SiteProvider,
 } from "@/lib/settings";
 
+import "@/index.css";
 import "@/performance.css";
 
 
@@ -38,77 +39,72 @@ export const Route =
 
         {
           name: "viewport",
-          content:
-            "width=device-width, initial-scale=1",
+          content: "width=device-width, initial-scale=1",
         },
 
         {
           name: "theme-color",
-          content:
-            "#050505",
+          content: "#050505",
         },
 
         {
           name: "color-scheme",
-          content:
-            "dark",
+          content: "dark",
         },
       ],
 
       links: [
         {
           rel: "preload",
-          href:
-            "/images/zzerkoff-logo.webp",
-          as:
-            "image",
-          type:
-            "image/webp",
-          fetchPriority:
-            "high",
+          href: "/images/zzerkoff-logo.webp",
+          as: "image",
+          type: "image/webp",
+          fetchPriority: "high",
         },
 
         {
           rel: "preconnect",
-          href:
-            "https://fonts.googleapis.com",
+          href: "https://fonts.googleapis.com",
         },
 
         {
           rel: "preconnect",
-          href:
-            "https://fonts.gstatic.com",
-          crossOrigin:
-            "anonymous",
+          href: "https://fonts.gstatic.com",
+          crossOrigin: "anonymous",
         },
       ],
     }),
 
-    component:
-      RootComponent,
+    component: RootComponent,
 
   });
 
 
-
 function RootComponent() {
 
+  const { queryClient } = Route.useRouteContext();
+
+
   return (
-    <SiteProvider>
+    <QueryClientProvider client={queryClient}>
 
-      <TooltipProvider>
+      <SiteProvider>
 
-        <HeadContent />
+        <TooltipProvider>
 
-        <Outlet />
+          <HeadContent />
 
-        <Toaster />
+          <Outlet />
 
-        <Scripts />
+          <Toaster />
 
-      </TooltipProvider>
+          <Scripts />
 
-    </SiteProvider>
+        </TooltipProvider>
+
+      </SiteProvider>
+
+    </QueryClientProvider>
   );
 
 }
