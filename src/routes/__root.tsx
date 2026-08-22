@@ -10,15 +10,6 @@ import type {
 } from "@tanstack/react-query";
 
 import {
-  useEffect,
-} from "react";
-
-
-import {
-  ThemeProvider,
-} from "@/components/theme-provider";
-
-import {
   Toaster,
 } from "@/components/ui/sonner";
 
@@ -38,10 +29,8 @@ import {
   SiteProvider,
 } from "@/lib/settings";
 
-
 import "@/index.css";
 import "@/performance.css";
-
 
 
 export const Route =
@@ -50,82 +39,58 @@ export const Route =
   }>()({
 
     head: () => ({
-
       meta: [
-
         {
-          charSet:
-            "utf-8",
+          charSet: "utf-8",
         },
 
         {
-          name:
-            "viewport",
+          name: "viewport",
           content:
             "width=device-width, initial-scale=1",
         },
 
         {
-          name:
-            "theme-color",
+          name: "theme-color",
           content:
             "#050505",
         },
 
         {
-          name:
-            "color-scheme",
+          name: "color-scheme",
           content:
             "dark",
         },
-
       ],
 
-
       links: [
-
         {
-          rel:
-            "preload",
-
+          rel: "preload",
           href:
             "/images/zzerkoff-logo.webp",
-
           as:
             "image",
-
           type:
             "image/webp",
-
           fetchPriority:
             "high",
         },
 
-
         {
-          rel:
-            "preconnect",
-
+          rel: "preconnect",
           href:
             "https://fonts.googleapis.com",
         },
 
-
         {
-          rel:
-            "preconnect",
-
+          rel: "preconnect",
           href:
             "https://fonts.gstatic.com",
-
           crossOrigin:
             "anonymous",
         },
-
       ],
-
     }),
-
 
     component:
       RootComponent,
@@ -136,53 +101,31 @@ export const Route =
 
 function RootComponent() {
 
-
-  useEffect(() => {
-
-    requestAnimationFrame(() => {
-
-      document.documentElement.classList.add(
-        "app-ready",
-      );
-
-    });
-
-  }, []);
-
-
-
   return (
 
-    <ThemeProvider
-      defaultTheme="dark"
-      storageKey="zzerkoff-theme"
-    >
+    <SiteProvider>
 
-      <SiteProvider>
+      <CartProvider>
 
-        <CartProvider>
+        <WishlistProvider>
 
-          <WishlistProvider>
+          <TooltipProvider>
 
-            <TooltipProvider>
+            <HeadContent />
 
-              <HeadContent />
+            <Outlet />
 
-              <Outlet />
+            <Toaster />
 
-              <Toaster />
+            <Scripts />
 
-              <Scripts />
+          </TooltipProvider>
 
-            </TooltipProvider>
+        </WishlistProvider>
 
-          </WishlistProvider>
+      </CartProvider>
 
-        </CartProvider>
-
-      </SiteProvider>
-
-    </ThemeProvider>
+    </SiteProvider>
 
   );
 
